@@ -51,6 +51,8 @@ contract TreeNft is ERC721, Ownable {
     // Mark a tree as dead
     function markDead(uint256 tokenId) public {
         require(_exists(tokenId), "Token does not exist");
+        require(s_tokenIDtoTree[tokenId].death == type(uint256).max, "Tree is already dead");
+        require(ownerOf(tokenId) == msg.sender, "Only the NFT owner can mark the tree as dead");
         s_tokenIDtoTree[tokenId].death = block.timestamp;
         s_deathCounter++;
     }
