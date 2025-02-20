@@ -12,10 +12,10 @@ contract DeployTreeNft is Script {
         string memory treeSvg = vm.readFile("./img/Sappling.svg");
         TreeNft treeNft;
         if (block.number > 1) { // This is a simple way to detect if we're in a test
-            treeNft = new TreeNft(svgToImageURI(treeSvg));
+            treeNft = new TreeNft();
         } else {
             vm.startBroadcast();
-            treeNft = new TreeNft(svgToImageURI(treeSvg));
+            treeNft = new TreeNft();
             vm.stopBroadcast();
         }
         return treeNft;

@@ -9,26 +9,50 @@ contract TreeNft is ERC721, Ownable {
     struct Tree {
         uint256 latitude;
         uint256 longitude;
-        uint256 data;
+        uint256 planting;
+        uint256 death;
+        string species;
+        string imageUri; // Added field for image URI
     }
 
-    string private s_treeSvgImageUri;
     uint256 private s_tokenCounter;
-
+    uint256 private s_deathCounter;
     mapping(uint256 => Tree) private s_tokenIDtoTree;
     mapping(uint256 => mapping(address => bool)) private s_tokenIDtoUserVerification; 
 
-    constructor(string memory treeSvgImageUri) Ownable(msg.sender) ERC721("TreeNFT", "TREE") {
+    constructor() Ownable(msg.sender) ERC721("TreeNFT", "TREE") {
         s_tokenCounter = 0;
-        s_treeSvgImageUri = treeSvgImageUri;
     }
 
-    // Mint a new Tree NFT
-    function mintNft(uint256 latitude, uint256 longitude, uint256 data) public {
+    function _exists(uint256 tokenId) internal view returns (bool) {
+        return tokenId < s_tokenCounter && tokenId >= 0;
+    }
+
+    // Mint a new Tree NFT with a custom image URI
+    function mintNft(
+        uint256 latitude,
+        uint256 longitude,
+        string memory species,
+        string memory imageUri
+    ) public {
         uint256 tokenId = s_tokenCounter;
         _safeMint(msg.sender, tokenId);
-        s_tokenIDtoTree[tokenId] = Tree(latitude, longitude, data);
+        s_tokenIDtoTree[tokenId] = Tree(
+            latitude,
+            longitude,
+            block.timestamp,
+            type(uint256).max,
+            species,
+            imageUri // Store image URI for each NFT
+        );
         s_tokenCounter++;
+    }
+    
+    // Mark a tree as dead
+    function markDead(uint256 tokenId) public {
+        require(_exists(tokenId), "Token does not exist");
+        s_tokenIDtoTree[tokenId].death = block.timestamp;
+        s_deathCounter++;
     }
 
     // Verifier confirms the tree planting
@@ -41,16 +65,10 @@ contract TreeNft is ERC721, Ownable {
     function isVerified(uint256 tokenId, address verifier) public view returns (bool) {
         return s_tokenIDtoUserVerification[tokenId][verifier];
     }
-    function _exists(uint256 tokenId) internal view returns (bool) {
-        if(tokenId < s_tokenCounter && tokenId >= 0){
-            return true;
-        }
-        return false;
-    }
+
     // Generate the tokenURI with tree data and verifiers
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
         require(_exists(tokenId), "Token does not exist");
-
         Tree memory tree = s_tokenIDtoTree[tokenId];
         string memory verifiersList = _getVerifiersString(tokenId);
 
@@ -63,18 +81,20 @@ contract TreeNft is ERC721, Ownable {
                 _uintToString(tree.latitude),
                 '"}, {"trait_type": "Longitude", "value": "',
                 _uintToString(tree.longitude),
-                '"}, {"trait_type": "Data", "value": "',
-                _uintToString(tree.data),
+                '"}, {"trait_type": "Planting", "value": "',
+                _uintToString(tree.planting),
+                '"}, {"trait_type": "Death", "value": "',
+                _uintToString(tree.death),
                 '"}, {"trait_type": "Verifiers", "value": "',
                 verifiersList,
                 '"}], "image":"',
-                s_treeSvgImageUri,
+                tree.imageUri, // Use custom image URI
                 '"}'
             )
         );
-
         return string(abi.encodePacked(_baseURI(), Base64.encode(bytes(json))));
     }
+
     function _baseURI() internal pure override returns (string memory) {
         return "data:application/json;base64,";
     }

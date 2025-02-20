@@ -1,0 +1,16 @@
+<svg width="200" height="300" viewBox="0 0 200 300" xmlns="http://www.w3.org/2000/svg">
+  <!-- Ground -->
+  <rect x="0" y="270" width="200" height="30" fill="#8B4513"/>
+
+  <!-- Trunk -->
+  <rect x="95" y="150" width="10" height="120" fill="#6B4226"/>
+
+  <!-- Left Leaf -->
+  <path d="M100 150 C80 130, 60 110, 70 90 C80 70, 100 80, 100 100" fill="#228B22"/>
+
+  <!-- Right Leaf -->
+  <path d="M100 150 C120 130, 140 110, 130 90 C120 70, 100 80, 100 100" fill="#228B22"/>
+
+  <!-- Sunlight Glow -->
+  <circle cx="100" cy="50" r="30" fill="yellow" opacity="0.3"/>
+</svg>
