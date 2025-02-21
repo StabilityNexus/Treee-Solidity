@@ -1,0 +1,26 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.19;
+
+import {Script, console} from "forge-std/Script.sol";
+import {DevOpsTools} from "foundry-devops/src/DevOpsTools.sol";
+import {TreeNft} from "../src/TreeeNft.sol";
+
+contract MintTreeNft is Script {
+    string public constant TREE_URI =
+        "data:application/json;base64,eyJuYW1lIjoiVHJlZU5GVCAjMCIsICJkZXNjcmlwdGlvbiI6IkEgVHJlZSBORlQgZm9yIHBsYW50aW5nIGEgdHJlZSIsICJhdHRyaWJ1dGVzIjogW3sidHJhaXRfdHlwZSI6ICJMYXRpdHVkZSIsICJ2YWx1ZSI6ICIxMDAifSwgeyJ0cmFpdF90eXBlIjogIkxvbmdpdHVkZSIsICJ2YWx1ZSI6ICIxNTAifSwgeyJ0cmFpdF90eXBlIjogIkRhdGEiLCAidmFsdWUiOiAiMjAwIn0sIHsidHJhaXRfdHlwZSI6ICJWZXJpZmllcnMiLCAidmFsdWUiOiAiTm9uZSJ9XSwgImltYWdlIjoiZGF0YTppbWFnZS9zdmcreG1sO2Jhc2U2NCxQSE4yWnlCM2FXUjBhRDBpTWpBd0lpQm9aV2xuYUhROUlqTXdNQ0lnZG1sbGQwSnZlRDBpTUNBd0lESXdNQ0F6TURBaUlIaHRiRzV6UFNKb2RIUndPaTh2ZDNkM0xuY3pMbTl5Wnk4eU1EQXdMM04yWnlJK0NpQWdQQ0V0TFNCSGNtOTFibVFnTFMwK0NpQWdQSEpsWTNRZ2VEMGlNQ0lnZVQwaU1qY3dJaUIzYVdSMGFEMGlNakF3SWlCb1pXbG5hSFE5SWpNd0lpQm1hV3hzUFNJak9FSTBOVEV6SWk4K0Nnb2dJRHdoTFMwZ1ZISjFibXNnTFMwK0NpQWdQSEpsWTNRZ2VEMGlPVFVpSUhrOUlqRTFNQ0lnZDJsa2RHZzlJakV3SWlCb1pXbG5hSFE5SWpFeU1DSWdabWxzYkQwaUl6WkNOREl5TmlJdlBnb0tJQ0E4SVMwdElFeGxablFnVEdWaFppQXRMVDRLSUNBOGNHRjBhQ0JrUFNKTk1UQXdJREUxTUNCRE9EQWdNVE13TENBMk1DQXhNVEFzSURjd0lEa3dJRU00TUNBM01Dd2dNVEF3SURnd0xDQXhNREFnTVRBd0lpQm1hV3hzUFNJak1qSTRRakl5SWk4K0Nnb2dJRHdoTFMwZ1VtbG5hSFFnVEdWaFppQXRMVDRLSUNBOGNHRjBhQ0JrUFNKTk1UQXdJREUxTUNCRE1USXdJREV6TUN3Z01UUXdJREV4TUN3Z01UTXdJRGt3SUVNeE1qQWdOekFzSURFd01DQTRNQ3dnTVRBd0lERXdNQ0lnWm1sc2JEMGlJekl5T0VJeU1pSXZQZ29LSUNBOElTMHRJRk4xYm14cFoyaDBJRWRzYjNjZ0xTMCtDaUFnUEdOcGNtTnNaU0JqZUQwaU1UQXdJaUJqZVQwaU5UQWlJSEk5SWpNd0lpQm1hV3hzUFNKNVpXeHNiM2NpSUc5d1lXTnBkSGs5SWpBdU15SXZQZ284TDNOMlp6ND0ifQ==";
+    string public constant TREE_IMAGE_URI = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDIwMCAzMDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPCEtLSBHcm91bmQgLS0+CiAgPHJlY3QgeD0iMCIgeT0iMjcwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjMwIiBmaWxsPSIjOEI0NTEzIi8+CgogIDwhLS0gVHJ1bmsgLS0+CiAgPHJlY3QgeD0iOTUiIHk9IjE1MCIgd2lkdGg9IjEwIiBoZWlnaHQ9IjEyMCIgZmlsbD0iIzZCNDIyNiIvPgoKICA8IS0tIExlZnQgTGVhZiAtLT4KICA8cGF0aCBkPSJNMTAwIDE1MCBDODAgMTMwLCA2MCAxMTAsIDcwIDkwIEM4MCA3MCwgMTAwIDgwLCAxMDAgMTAwIiBmaWxsPSIjMjI4QjIyIi8+CgogIDwhLS0gUmlnaHQgTGVhZiAtLT4KICA8cGF0aCBkPSJNMTAwIDE1MCBDMTIwIDEzMCwgMTQwIDExMCwgMTMwIDkwIEMxMjAgNzAsIDEwMCA4MCwgMTAwIDEwMCIgZmlsbD0iIzIyOEIyMiIvPgoKICA8IS0tIFN1bmxpZ2h0IEdsb3cgLS0+CiAgPGNpcmNsZSBjeD0iMTAwIiBjeT0iNTAiIHI9IjMwIiBmaWxsPSJ5ZWxsb3ciIG9wYWNpdHk9IjAuMyIvPgo8L3N2Zz4=";
+    function run() external {
+        address mostRecentlyDeployedBasicNft = DevOpsTools.get_most_recent_deployment("TreeNft", block.chainid);
+        mintNftOnContract(mostRecentlyDeployedBasicNft);
+    }
+
+    function mintNftOnContract(address basicNftAddress) public {
+        vm.startBroadcast();
+        uint256 latitude = 100;
+        uint256 longitude = 150;
+        string memory species = "Pine";
+        TreeNft(basicNftAddress).mintNft(latitude, longitude, species, TREE_IMAGE_URI);    
+        vm.stopBroadcast();
+    }
+}
+
