@@ -12,36 +12,38 @@ contract TreeNftTest is Test {
     function setUp() public {
         treeNft = new TreeNft();
     }
+
     function testVerifyTree() public {
-    // Mint an NFT to user2
-    vm.prank(user2);
-    treeNft.mintNft(123456, 654321, "Oak", "");
+        // Mint an NFT to user2
+        vm.prank(user2);
+        treeNft.mintNft(123456, 654321, "Oak", "");
 
-    // Ensure user2 owns the NFT (ID = 0)
-    assertEq(treeNft.ownerOf(0), user2);
+        // Ensure user2 owns the NFT (ID = 0)
+        assertEq(treeNft.ownerOf(0), user2);
 
-    // Verify the NFT
-    vm.prank(user2);
-    treeNft.verify(0);
+        // Verify the NFT
+        vm.prank(user2);
+        treeNft.verify(0);
 
-    // Check if the NFT is verified
-    bool isVerified = treeNft.isVerified(0, user2);
-    assertEq(isVerified, true);
+        // Check if the NFT is verified
+        bool isVerified = treeNft.isVerified(0, user2);
+        assertEq(isVerified, true);
 
-    // Fetch all NFTs
-    string[] memory allNFTs = treeNft.getAllNFTs();
+        // Fetch all NFTs
+        string[] memory allNFTs = treeNft.getAllNFTs();
 
-    // Extract verifiers from the first NFT JSON string
-    string memory nftJson = allNFTs[0];
-    bool containsVerifier = _stringContains(nftJson, _toHexString(user2));
+        // Extract verifiers from the first NFT JSON string
+        string memory nftJson = allNFTs[0];
+        bool containsVerifier = _stringContains(nftJson, _toHexString(user2));
 
-    // Ensure verifier address is present in the JSON output
-    assertTrue(containsVerifier, "Verifier address should be present in getAllNFTs()");
-}
+        // Ensure verifier address is present in the JSON output
+        assertTrue(containsVerifier, "Verifier address should be present in getAllNFTs()");
+    }
 
-// Helper function to check if a string contains a substring
+    // Helper function to check if a string contains a substring
     function _stringContains(string memory main, string memory sub) internal pure returns (bool) {
-        return bytes(main).length > 0 && bytes(sub).length > 0 && (bytes(main).length >= bytes(sub).length) && _indexOf(main, sub) != -1;
+        return bytes(main).length > 0 && bytes(sub).length > 0 && (bytes(main).length >= bytes(sub).length)
+            && _indexOf(main, sub) != -1;
     }
 
     // Helper function to convert address to string (hex format)
@@ -50,7 +52,7 @@ contract TreeNftTest is Test {
     }
 
     // Helper function to find a substring in a string
-    function _indexOf(string memory main, string memory sub) internal pure returns (int) {
+    function _indexOf(string memory main, string memory sub) internal pure returns (int256) {
         bytes memory mainBytes = bytes(main);
         bytes memory subBytes = bytes(sub);
 
@@ -67,9 +69,9 @@ contract TreeNftTest is Test {
                 }
             }
             if (matchFound) {
-                return int(i);
+                return int256(i);
             }
         }
         return -1;
-    } 
+    }
 }

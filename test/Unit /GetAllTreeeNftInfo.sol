@@ -11,6 +11,7 @@ contract TreeNFTTest is Test, IERC721Receiver {
     function setUp() public {
         treeNFT = new TreeNft();
     }
+
     function testGetAllNFTs() public {
         // Mint two NFTs to this contract
         treeNFT.mintNft(123456, 654321, "Oak", "https://ipfs.io/ipfs/Qm1");
@@ -33,17 +34,15 @@ contract TreeNFTTest is Test, IERC721Receiver {
         assertTrue(_contains(allNFTs[1], "Pine"), "Species incorrect");
         assertTrue(_contains(allNFTs[1], "https://ipfs.io/ipfs/Qm2"), "Image URI incorrect");
     }
-    function onERC721Received(
-        address,
-        address,
-        uint256,
-        bytes calldata
-    ) external pure override returns (bytes4) {
+
+    function onERC721Received(address, address, uint256, bytes calldata) external pure override returns (bytes4) {
         return IERC721Receiver.onERC721Received.selector;
     }
+
     function _contains(string memory mainStr, string memory subStr) private pure returns (bool) {
         return bytes(mainStr).length >= bytes(subStr).length && _indexOf(mainStr, subStr) != -1;
     }
+
     function _indexOf(string memory haystack, string memory needle) private pure returns (int256) {
         bytes memory haystackBytes = bytes(haystack);
         bytes memory needleBytes = bytes(needle);
