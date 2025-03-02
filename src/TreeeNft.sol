@@ -144,13 +144,31 @@ contract TreeNft is ERC721, Ownable {
         }
         return string(str);
     }
+    
+    function getAllNFTs() public view returns (string[] memory) {
+        string[] memory allNFTs = new string[](s_tokenCounter);
+        
+        for (uint256 tokenId = 0; tokenId < s_tokenCounter; tokenId++) {
+            Tree memory tree = s_tokenIDtoTree[tokenId];
+            string memory verifiersList = _getVerifiersString(tokenId);
 
-    // Fetch all minted NFT details
-    function getAllNFTs() public view returns (Tree[] memory) {
-        Tree[] memory allTrees = new Tree[](s_tokenCounter);
-        for (uint256 i = 0; i < s_tokenCounter; i++) {
-            allTrees[i] = s_tokenIDtoTree[i];
+            string memory nftDetails = string(
+                abi.encodePacked(
+                    '{"tokenId": "', _uintToString(tokenId),
+                    '", "latitude": "', _uintToString(tree.latitude),
+                    '", "longitude": "', _uintToString(tree.longitude),
+                    '", "species": "', tree.species,
+                    '", "planting": "', _uintToString(tree.planting),
+                    '", "death": "', _uintToString(tree.death),
+                    '", "verifiers": "', verifiersList,
+                    '", "imageUri": "', tree.imageUri,
+                    '", "tokenURI": "', tokenURI(tokenId), '"}'
+                )
+            );
+
+            allNFTs[tokenId] = nftDetails;
         }
-        return allTrees;
+        
+        return allNFTs;
     }
 }
