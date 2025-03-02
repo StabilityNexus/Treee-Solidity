@@ -2,7 +2,7 @@
 pragma solidity ^0.8.19;
 
 import "forge-std/Test.sol";
-import "../../src/TreeeNFT.sol";
+import "../../src/TreeeNft.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
 contract TreeNFTTest is Test, IERC721Receiver {
