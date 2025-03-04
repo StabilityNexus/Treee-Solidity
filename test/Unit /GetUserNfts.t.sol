@@ -13,29 +13,25 @@ contract TreeNftTest is Test {
         treeNft = new TreeNft();
     }
 
-    function testVerifyTree() public {
+    function testGetUserNFTs() public {
         vm.prank(user2);
         treeNft.mintNft(123456, 654321, "Oak", "");
-        assertEq(treeNft.ownerOf(0), user2);
-        vm.prank(user2);
-        treeNft.verify(0);
-        bool isVerified = treeNft.isVerified(0, user2);
-        assertEq(isVerified, true);
-        string[] memory allNFTs = treeNft.getAllNFTs();
-        string memory nftJson = allNFTs[0];
-        bool containsVerifier = _stringContains(nftJson, _toHexString(user2));
-        assertTrue(containsVerifier, "Verifier address should be present in getAllNFTs()");
-    }
 
+        vm.prank(user2);
+        treeNft.mintNft(789012, 210987, "Pine", "");
+        string[] memory userNFTs = treeNft.getNFTsByUser(user2);
+        assertEq(userNFTs.length, 2, "User should own exactly two NFTs");
+
+        bool containsOak = _stringContains(userNFTs[0], "Oak");
+        bool containsPine = _stringContains(userNFTs[1], "Pine");
+        
+        assertTrue(containsOak, "User's NFT list should contain Oak tree");
+        assertTrue(containsPine, "User's NFT list should contain Pine tree");
+    }
     function _stringContains(string memory main, string memory sub) internal pure returns (bool) {
         return bytes(main).length > 0 && bytes(sub).length > 0 && (bytes(main).length >= bytes(sub).length)
             && _indexOf(main, sub) != -1;
     }
-
-    function _toHexString(address addr) internal pure returns (string memory) {
-        return Strings.toHexString(uint256(uint160(addr)), 20);
-    }
-
     function _indexOf(string memory main, string memory sub) internal pure returns (int256) {
         bytes memory mainBytes = bytes(main);
         bytes memory subBytes = bytes(sub);

@@ -19,6 +19,7 @@ contract TreeNft is ERC721, Ownable {
     uint256 private s_deathCounter;
     mapping(uint256 => Tree) private s_tokenIDtoTree;
     mapping(uint256 => address[]) private s_tokenIDtoVerifiers;
+    mapping(address => uint256[]) private s_userToNFTs;
     mapping(uint256 => mapping(address => bool)) private s_tokenIDtoUserVerification;
 
     constructor() Ownable(msg.sender) ERC721("TreeNFT", "TREE") {
@@ -41,6 +42,7 @@ contract TreeNft is ERC721, Ownable {
             species,
             imageUri // Store image URI for each NFT
         );
+        s_userToNFTs[msg.sender].push(tokenId);
         s_tokenCounter++;
     }
 
@@ -192,4 +194,41 @@ contract TreeNft is ERC721, Ownable {
 
         return allNFTs;
     }
+    function getNFTsByUser(address user) public view returns (string[] memory) {
+        uint256[] memory userNFTs = s_userToNFTs[user];
+        string[] memory nftDetails = new string[](userNFTs.length);
+
+        for (uint256 i = 0; i < userNFTs.length; i++) {
+            uint256 tokenId = userNFTs[i];
+            Tree memory tree = s_tokenIDtoTree[tokenId];
+            string memory verifiersList = _getVerifiersString(tokenId);
+
+            nftDetails[i] = string(
+                abi.encodePacked(
+                    '{"tokenId": "',
+                    _uintToString(tokenId),
+                    '", "latitude": "',
+                    _uintToString(tree.latitude),
+                    '", "longitude": "',
+                    _uintToString(tree.longitude),
+                    '", "species": "',
+                    tree.species,
+                    '", "planting": "',
+                    _uintToString(tree.planting),
+                    '", "death": "',
+                    _uintToString(tree.death),
+                    '", "verifiers": "',
+                    verifiersList,
+                    '", "imageUri": "',
+                    tree.imageUri,
+                    '", "tokenURI": "',
+                    tokenURI(tokenId),
+                    '"}'
+                )
+            );
+        }
+
+        return nftDetails;
+    }
 }
+
