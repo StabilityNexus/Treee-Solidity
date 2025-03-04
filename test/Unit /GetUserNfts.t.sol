@@ -24,14 +24,16 @@ contract TreeNftTest is Test {
 
         bool containsOak = _stringContains(userNFTs[0], "Oak");
         bool containsPine = _stringContains(userNFTs[1], "Pine");
-        
+
         assertTrue(containsOak, "User's NFT list should contain Oak tree");
         assertTrue(containsPine, "User's NFT list should contain Pine tree");
     }
+
     function _stringContains(string memory main, string memory sub) internal pure returns (bool) {
         return bytes(main).length > 0 && bytes(sub).length > 0 && (bytes(main).length >= bytes(sub).length)
             && _indexOf(main, sub) != -1;
     }
+
     function _indexOf(string memory main, string memory sub) internal pure returns (int256) {
         bytes memory mainBytes = bytes(main);
         bytes memory subBytes = bytes(sub);

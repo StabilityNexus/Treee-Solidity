@@ -194,6 +194,7 @@ contract TreeNft is ERC721, Ownable {
 
         return allNFTs;
     }
+
     function getNFTsByUser(address user) public view returns (string[] memory) {
         uint256[] memory userNFTs = s_userToNFTs[user];
         string[] memory nftDetails = new string[](userNFTs.length);
@@ -231,4 +232,3 @@ contract TreeNft is ERC721, Ownable {
         return nftDetails;
     }
 }
-
