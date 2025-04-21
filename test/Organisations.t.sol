@@ -37,6 +37,59 @@ contract TreeNftTest is Test {
         assertEq(org.owners[0], user1);
         vm.stopPrank();
     }
+
+    function test_leaveOrganisation_RevertsIfLastOwnerLeaves() public {
+        vm.startPrank(user1);
+        string memory orgName = "Tree Planters";
+        string memory orgDesc = "An organization dedicated to planting trees";
+        string memory orgPhoto = "ipfs://QmOrgPhoto123";
+        uint256 orgId = userActivityContract.createOrganisation(orgName, orgDesc, orgPhoto);
+        vm.expectRevert(NeedAnotherOwner.selector);
+        userActivityContract.leaveOrganisation(orgId);
+        vm.stopPrank();
+    }
+
+    function test_makeOwner() public {
+        vm.startPrank(user1);
+        string memory orgName = "Tree Planters";
+        string memory orgDesc = "An organization dedicated to planting trees";
+        string memory orgPhoto = "ipfs://QmOrgPhoto123";
+        uint256 orgId = userActivityContract.createOrganisation(orgName, orgDesc, orgPhoto);
+        vm.stopPrank();
+        vm.startPrank(user2);
+        userActivityContract.requestToJoinOrganisation(orgId, "I want to help plant trees");
+        vm.stopPrank();
+        vm.startPrank(user1);
+        userActivityContract.processJoinRequest(0,1); // 1 = approve
+        vm.stopPrank();
+        vm.startPrank(user2);
+        userActivityContract.makeOrganisationOwner(orgId, user2);
+        Organisation memory org = userActivityContract.getOrganisation(orgId);
+        assertEq(org.owners[1], user2);
+        vm.stopPrank();
+    }
+
+    function test_leaveOrganisationAfterMakingOwner() public {
+        vm.startPrank(user1);
+        string memory orgName = "Tree Planters";
+        string memory orgDesc = "An organization dedicated to planting trees";
+        string memory orgPhoto = "ipfs://QmOrgPhoto123";
+        uint256 orgId = userActivityContract.createOrganisation(orgName, orgDesc, orgPhoto);
+        vm.stopPrank();
+        vm.startPrank(user2);
+        userActivityContract.requestToJoinOrganisation(orgId, "I want to help plant trees");
+        vm.stopPrank();
+        vm.startPrank(user1);
+        userActivityContract.processJoinRequest(0, 1); // 1 = approve
+        userActivityContract.makeOrganisationOwner(orgId, user2);
+        vm.stopPrank();
+        vm.startPrank(user2);
+        userActivityContract.leaveOrganisation(orgId);
+        Organisation memory updatedOrg = userActivityContract.getOrganisation(orgId);
+        assertEq(updatedOrg.members.length, 1);
+        assertEq(updatedOrg.owners[0], user1);
+        vm.stopPrank();
+    }
     
     function test_MintNftWithOrganisation() public {
         vm.startPrank(user1);
@@ -52,7 +105,7 @@ contract TreeNftTest is Test {
         userActivityContract.requestToJoinOrganisation(orgId, "I want to help plant trees");
         vm.stopPrank();
         vm.startPrank(user1);
-        userActivityContract.processJoinRequest(orgId, user2, 1); // 1 = approve
+        userActivityContract.processJoinRequest(0, 1); // 1 = approve
         vm.stopPrank();
         vm.startPrank(user2);
         vm.store(

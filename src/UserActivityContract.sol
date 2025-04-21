@@ -7,12 +7,15 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract UserActivityContract is Ownable {
     uint256 private s_organisationCounter;
+    uint256 private s_requestCounter;
     mapping(uint256 => Organisation) private s_organisationIDtoOrganisation;
+    mapping(uint256 => JoinRequest) private s_requestIDtoJoinRequest;
     mapping(address => uint256[]) private s_userToOrganisations;
     mapping(uint256 => JoinRequest[]) private s_organisationToJoinRequests;
     mapping(address => User) private s_addressToUser;
     constructor() Ownable(msg.sender) {
         s_organisationCounter = 0;
+        s_requestCounter = 0;
     }
     function createOrganisation(string memory name, string memory description, string memory photoIpfsHash) public returns (uint256) {
         if(keccak256(abi.encodePacked(name)) == keccak256(abi.encodePacked(""))) {
@@ -41,7 +44,6 @@ contract UserActivityContract is Ownable {
                 name: "",
                 description: "",
                 owners: new address[](0), 
-                requests: new JoinRequest[](0), 
                 members: new address[](0), 
                 photoIpfsHash: "",
                 timestamps: new uint256[](0) 
@@ -58,18 +60,26 @@ contract UserActivityContract is Ownable {
     function requestToJoinOrganisation(uint256 organisationId, string memory description) public {
         require(organisationId < s_organisationCounter, "Organisation does not exist");
         Organisation storage org = s_organisationIDtoOrganisation[organisationId];
-        for (uint i = 0; i < org.members.length; i++) {
-            if (org.members[i] == msg.sender) {
-                revert("User is already a member of this organisation");
-            }
+
+        if (checkMembership(msg.sender, organisationId)) {
+            revert AlreadyVerified();
         }
-        JoinRequest memory request;
-        request.user = msg.sender;
-        request.status = 0;
-        request.description = description;
-        request.timestamp = block.timestamp;
+
+        JoinRequest memory request = JoinRequest({
+            id: s_requestCounter,
+            user: msg.sender,
+            organisation: org,
+            status: 0,
+            description: description,
+            timestamp: block.timestamp,
+            reviewer: User(address(0), "", "", 0)
+        });
+
         s_organisationToJoinRequests[organisationId].push(request);
+        s_requestIDtoJoinRequest[s_requestCounter] = request;
+        s_requestCounter++;
     }
+
 
     function getOrganisationJoinRequests(uint256 organisationId) public view returns (JoinRequest[] memory) {
         if(organisationId >= s_organisationCounter || organisationId < 0) {
@@ -81,32 +91,30 @@ contract UserActivityContract is Ownable {
         return s_organisationToJoinRequests[organisationId];
     }
 
-    function processJoinRequest(uint256 organisationId, address requestUser, uint8 status) public {
+    function processJoinRequest(uint256 requestID, uint256 status) public {
+        require(status == 1 || status == 2, "Invalid status"); // 1 = approved, 2 = denied
+
+        JoinRequest storage request = s_requestIDtoJoinRequest[requestID];
+        uint256 organisationId = request.organisation.id;
+
         require(organisationId < s_organisationCounter, "Organisation does not exist");
+        require(request.status == 0, "Request already processed");
+
         if (!checkOwnership(msg.sender, organisationId)) {
             revert NotOrganisationOwner();
         }
-        if (status != 1 && status != 2) {
-            revert InvalidApprovalStatusInput();
+        request.status = status;
+        if (status == 1) {
+            Organisation storage org = s_organisationIDtoOrganisation[organisationId];
+            org.members.push(request.user); 
+            s_userToOrganisations[request.user].push(organisationId);
         }
-        JoinRequest[] storage requests = s_organisationToJoinRequests[organisationId];
-        for (uint i = 0; i < requests.length; i++) {
-            if (requests[i].user == requestUser && requests[i].status == 0) {
-                requests[i].status = status;
-                if (status == 1) {
-                    Organisation storage org = s_organisationIDtoOrganisation[organisationId];
-                    address[] memory newMembers = new address[](org.members.length + 1);
-                    for (uint j = 0; j < org.members.length; j++) {
-                        newMembers[j] = org.members[j];
-                    }
-                    newMembers[org.members.length] = requestUser;
-                    org.members = newMembers;
-                    s_userToOrganisations[requestUser].push(organisationId);
-                }
-                break;
-            }
+        else {
+            request.status = 2; // Denied
         }
+        request.reviewer = s_addressToUser[msg.sender];
     }
+
 
     function leaveOrganisation(uint256 organisationId) public {
         require(organisationId < s_organisationCounter, "Organisation does not exist");
