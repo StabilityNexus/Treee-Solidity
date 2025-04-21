@@ -4,6 +4,10 @@ pragma solidity ^0.8.28;
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import "./errors.sol";
+import "./TreeVerificationContract.sol";
+import  "./UserActivityContract.sol";
+import "./structs.sol";
 
 contract TreeNft is ERC721, Ownable {
     struct Tree {
@@ -13,17 +17,26 @@ contract TreeNft is ERC721, Ownable {
         uint256 death;
         string species;
         string imageUri; // Added field for image URI
+        string qrIpfsHash;
+        string[] photos; 
+        string geoHash;
+        address[] ancestors;
+        Organisation organisation;
+        Verification [] verifiers;
     }
-
+    UserActivityContract private userActivityContract;
     uint256 private s_tokenCounter;
+    uint256 private s_organisationCounter;
     uint256 private s_deathCounter;
     mapping(uint256 => Tree) private s_tokenIDtoTree;
     mapping(uint256 => address[]) private s_tokenIDtoVerifiers;
     mapping(address => uint256[]) private s_userToNFTs;
     mapping(uint256 => mapping(address => bool)) private s_tokenIDtoUserVerification;
+    mapping(address => uint256[]) private s_verifierToTokenIDs;
 
-    constructor() Ownable(msg.sender) ERC721("TreeNFT", "TREE") {
+    constructor(address _userActivityContractAddress) Ownable(msg.sender) ERC721("TreeNFT", "TREE") {
         s_tokenCounter = 0;
+        userActivityContract = UserActivityContract(_userActivityContractAddress);
     }
 
     function _exists(uint256 tokenId) internal view returns (bool) {
@@ -31,54 +44,74 @@ contract TreeNft is ERC721, Ownable {
     }
 
     // Mint a new Tree NFT with a custom image URI
-    function mintNft(uint256 latitude, uint256 longitude, string memory species, string memory imageUri) public {
+    function mintNft(
+        uint256 latitude, 
+        uint256 longitude, 
+        string memory species, 
+        string memory imageUri, 
+        string memory qrIpfsHash,
+        string memory geoHash,
+        string[] memory initialPhotos,  // Allow passing initial photos during minting
+        uint256 organisationId
+    ) public {
         uint256 tokenId = s_tokenCounter;
+        Organisation memory treeOrganisation;
+        if (organisationId < s_organisationCounter) {
+            treeOrganisation = userActivityContract.getOrganisation(organisationId);
+        }
+        if (userActivityContract.checkMembership(msg.sender, organisationId) == false) {
+            revert NotOrganisationMember();
+        }
         _safeMint(msg.sender, tokenId);
+        address[] memory ancestors = new address[](1);
+        ancestors[0] = msg.sender;
+        Verification[] memory emptyVerifications = new Verification[](0);
         s_tokenIDtoTree[tokenId] = Tree(
             latitude,
             longitude,
             block.timestamp,
-            type(uint256).max,
+            type(uint256).max,  // Tree is not dead at mint time
             species,
-            imageUri // Store image URI for each NFT
+            imageUri,
+            qrIpfsHash,
+            initialPhotos,  // Store initial photos provided by the user
+            geoHash,
+            ancestors,
+            treeOrganisation,
+            emptyVerifications
         );
         s_userToNFTs[msg.sender].push(tokenId);
         s_tokenCounter++;
     }
 
-    // Mark a tree as dead
     function markDead(uint256 tokenId) public {
-        require(_exists(tokenId), "Token does not exist");
+        if (!_exists(tokenId)) revert TokenDoesNotExist();
         require(s_tokenIDtoTree[tokenId].death == type(uint256).max, "Tree is already dead");
         require(ownerOf(tokenId) == msg.sender, "Only the NFT owner can mark the tree as dead");
         s_tokenIDtoTree[tokenId].death = block.timestamp;
         s_deathCounter++;
     }
 
-    // Verifier confirms the tree planting
     function verify(uint256 tokenId) public {
         require(_exists(tokenId), "Token does not exist");
-
-        // Check if the verifier has already verified
         if (!s_tokenIDtoUserVerification[tokenId][msg.sender]) {
             s_tokenIDtoUserVerification[tokenId][msg.sender] = true;
-            s_tokenIDtoVerifiers[tokenId].push(msg.sender); // Store the verifier address
+            s_tokenIDtoVerifiers[tokenId].push(msg.sender);
+            s_verifierToTokenIDs[msg.sender].push(tokenId); 
         }
     }
-    // Check if a user has verified the tree
 
     function isVerified(uint256 tokenId, address verifier) public view returns (bool) {
         return s_tokenIDtoUserVerification[tokenId][verifier];
     }
 
-    // Generate the tokenURI with tree data and verifiers
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
         require(_exists(tokenId), "Token does not exist");
         Tree memory tree = s_tokenIDtoTree[tokenId];
         string memory verifiersList = _getVerifiersString(tokenId);
 
         string memory json = string(
-            abi.encodePacked(
+            abi.encodePacked( 
                 '{"name":"TreeNFT #',
                 _uintToString(tokenId),
                 '", "description":"A Tree NFT for planting a tree", ',
@@ -104,27 +137,23 @@ contract TreeNft is ERC721, Ownable {
         return "data:application/json;base64,";
     }
 
-    // Helper to get verifier addresses as a string
     function _getVerifiersString(uint256 tokenId) private view returns (string memory) {
-        string memory verifiersList = "";
         address[] memory verifiers = s_tokenIDtoVerifiers[tokenId];
+        uint256 length = verifiers.length;
 
-        for (uint256 i = 0; i < verifiers.length; i++) {
-            verifiersList = string(abi.encodePacked(verifiersList, _addressToString(verifiers[i]), ", "));
+        if (length == 0) {
+            return "None";
         }
 
-        // Remove trailing comma and space
-        if (bytes(verifiersList).length > 0) {
-            bytes memory verifiersBytes = bytes(verifiersList);
-            if (verifiersBytes.length > 2) {
-                verifiersBytes[verifiersBytes.length - 2] = 0;
-                verifiersBytes[verifiersBytes.length - 1] = 0;
-                verifiersList = string(verifiersBytes);
-            }
+        string memory verifiersList = _addressToString(verifiers[0]);
+
+        for (uint256 i = 1; i < length; i++) {
+            verifiersList = string(abi.encodePacked(verifiersList, ", ", _addressToString(verifiers[i])));
         }
 
-        return bytes(verifiersList).length > 0 ? verifiersList : "None";
+        return verifiersList;
     }
+
 
     // Convert uint to string
     function _uintToString(uint256 value) private pure returns (string memory) {
@@ -144,7 +173,6 @@ contract TreeNft is ERC721, Ownable {
         return string(buffer);
     }
 
-    // Convert address to string
     function _addressToString(address addr) private pure returns (string memory) {
         bytes32 value = bytes32(uint256(uint160(addr)));
         bytes memory alphabet = "0123456789abcdef";
@@ -230,5 +258,37 @@ contract TreeNft is ERC721, Ownable {
         }
 
         return nftDetails;
+    }
+    function getVerifiedTreesByUser(address verifier) public view returns (string[] memory) {
+        uint256[] memory verifiedTokens = s_verifierToTokenIDs[verifier];
+        string[] memory treeDetails = new string[](verifiedTokens.length);
+        
+        for (uint256 i = 0; i < verifiedTokens.length; i++) {
+            uint256 tokenId = verifiedTokens[i];
+            Tree memory tree = s_tokenIDtoTree[tokenId];
+            
+            // Format the tree information similar to other view functions
+            treeDetails[i] = string(
+                abi.encodePacked(
+                    '{"tokenId": "',
+                    _uintToString(tokenId),
+                    '", "latitude": "',
+                    _uintToString(tree.latitude),
+                    '", "longitude": "',
+                    _uintToString(tree.longitude),
+                    '", "species": "',
+                    tree.species,
+                    '", "planting": "',
+                    _uintToString(tree.planting),
+                    '", "death": "',
+                    _uintToString(tree.death),
+                    '", "imageUri": "',
+                    tree.imageUri,
+                    '"}'
+                )
+            );
+        }
+        
+        return treeDetails;
     }
 }
