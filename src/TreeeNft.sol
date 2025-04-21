@@ -10,20 +10,6 @@ import  "./UserActivityContract.sol";
 import "./structs.sol";
 
 contract TreeNft is ERC721, Ownable {
-    struct Tree {
-        uint256 latitude;
-        uint256 longitude;
-        uint256 planting;
-        uint256 death;
-        string species;
-        string imageUri; // Added field for image URI
-        string qrIpfsHash;
-        string[] photos; 
-        string geoHash;
-        address[] ancestors;
-        Organisation organisation;
-        Verification [] verifiers;
-    }
     UserActivityContract private userActivityContract;
     uint256 private s_tokenCounter;
     uint256 private s_organisationCounter;
@@ -70,11 +56,11 @@ contract TreeNft is ERC721, Ownable {
             latitude,
             longitude,
             block.timestamp,
-            type(uint256).max,  // Tree is not dead at mint time
+            type(uint256).max, 
             species,
             imageUri,
             qrIpfsHash,
-            initialPhotos,  // Store initial photos provided by the user
+            initialPhotos, 
             geoHash,
             ancestors,
             treeOrganisation,
@@ -86,8 +72,8 @@ contract TreeNft is ERC721, Ownable {
 
     function markDead(uint256 tokenId) public {
         if (!_exists(tokenId)) revert TokenDoesNotExist();
-        require(s_tokenIDtoTree[tokenId].death == type(uint256).max, "Tree is already dead");
-        require(ownerOf(tokenId) == msg.sender, "Only the NFT owner can mark the tree as dead");
+        if(s_tokenIDtoTree[tokenId].death != type(uint256).max) revert TreeAlreadyDead();
+        if(ownerOf(tokenId) != msg.sender) revert NotTreeOwner();
         s_tokenIDtoTree[tokenId].death = block.timestamp;
         s_deathCounter++;
     }
