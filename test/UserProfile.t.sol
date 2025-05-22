@@ -3,7 +3,7 @@ pragma solidity ^0.8.28;
 import "forge-std/Test.sol";
 import "../src/TreeeNft.sol";
 import "../src/UserActivityContract.sol";
-import "../src/structs.sol";
+import "../src/utils/structs.sol";
 
 contract UserProfileTest is Test {
     TreeNft public treeNft;

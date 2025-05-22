@@ -1,14 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-struct Organisation {
+struct OrganizationDetails {
     uint256 id;
+    address contractAddress;
     string name;
     string description;
-    address[] owners;
-    address [] members;
     string photoIpfsHash;
-    uint256[] timestamps;
+    address[] owners;
+    address[] members;
+    uint256 ownerCount;
+    uint256 memberCount;
+    bool isActive;
+    uint256 timeOfCreation;
 }
 
 struct Verification {
@@ -18,14 +22,25 @@ struct Verification {
     string description;
 }
 
+struct OrganisationVerificationRequest {
+    uint256 id;
+    address initial_member;
+    address organisationContract;
+    uint256 status;
+    string description;
+    uint256 timestamp;
+    address[] yes_votes;
+    address[] no_votes;
+}
+
 struct JoinRequest{
     uint256 id;
     address user;
-    Organisation organisation;
+    address organisationContract;
     uint256 status;  // 0 = pending, 1 = approved, 2 = denied
     string description;
     uint256 timestamp;
-    User reviewer;
+    address reviewer;
 }
 
 struct User {
@@ -41,11 +56,13 @@ struct Tree {
     uint256 planting;
     uint256 death;
     string species;
-    string imageUri; // Added field for image URI
+    string imageUri; 
     string qrIpfsHash;
     string[] photos; 
     string geoHash;
     address[] ancestors;
-    Organisation organisation;
+    address organisationAddress;
     Verification [] verifiers;
+    uint256 lastCareTimestamp;
+    uint256 careCount;
  }
