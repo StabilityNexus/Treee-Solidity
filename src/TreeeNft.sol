@@ -5,9 +5,6 @@ import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-import "./TreeVerificationContract.sol";
-import  "./UserActivityContract.sol";
-
 import "./utils/structs.sol";
 import "./utils/errors.sol";
 

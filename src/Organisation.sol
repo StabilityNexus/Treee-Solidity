@@ -68,7 +68,6 @@ contract Organisation is Ownable{
         timeOfCreation = block.timestamp;
         treeNFTContract = _treeNFTContractAddress;
         s_treeNFTContract = TreeNft(_treeNFTContractAddress);
-
     }
     
     function requestToJoin(string memory _description, address _user) external onlyOwner {
