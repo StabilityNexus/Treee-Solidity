@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 import "@openzeppelin/contracts/access/Ownable.sol";
-
 import "./utils/structs.sol";
 import "./utils/errors.sol";
 import "./TreeeNft.sol";
 import "./OrganisationFactory.sol";
 
-contract Organization is Ownable{
+contract Organisation is Ownable{
     uint256 public immutable id;
     address public immutable organisationContract;
     address public treeNFTContract;
@@ -19,6 +18,7 @@ contract Organization is Ownable{
     address[] public members;
     uint256 public timeOfCreation;
     JoinRequest[] private s_joinRequests;
+    TreeNft private s_treeNFTContract;
     
     uint256 private s_requestCounter;
     uint256 private s_verificationCounter;
@@ -28,13 +28,18 @@ contract Organization is Ownable{
     mapping(address => address) private s_removedUsertoUser;
     mapping(uint256 => address) private s_leftMembers;
 
+
     mapping(address => User) private s_addressToUser;
     mapping(uint256 => OrganisationVerificationRequest) private s_verificationIDtoVerification;
     mapping(address => OrganisationVerificationRequest[]) private s_userAddressToVerifications;
+
+    mapping(uint256 => address[]) private s_verificationYesVoters; 
+    mapping(uint256 => address[]) private s_verificationNoVoters;
+
     mapping(address => uint256) private s_userToJoinTime;
     mapping(address => uint256) private s_userToLeaveTime;
     
-    modifier onlyOwner  {
+    modifier onlyOwner override {
         require(checkOwnership(msg.sender), "Not an owner");
         _;
     }
@@ -62,6 +67,7 @@ contract Organization is Ownable{
         s_verificationCounter = 0;
         timeOfCreation = block.timestamp;
         treeNFTContract = _treeNFTContractAddress;
+        s_treeNFTContract = TreeNft(_treeNFTContractAddress);
 
     }
     
@@ -97,7 +103,7 @@ contract Organization is Ownable{
         JoinRequest storage request = s_requestIDtoJoinRequest[requestID];
         require(request.status == 0, "Request already processed");
         request.status = status;
-        request.reviewer = reviewer;
+        request.reviewer = msg.sender;
 
         if (status == 1) {
             members.push(request.user);
@@ -105,6 +111,7 @@ contract Organization is Ownable{
             if(s_userToLeaveTime[request.user] != 0){
                 s_userToLeaveTime[request.user] = 0;
             }
+            OrganisationFactory(organisationFactoryAddress).addUserToOrganization(request.user);
         }
     }
     
@@ -177,22 +184,20 @@ contract Organization is Ownable{
         require(checkMembership(msg.sender), "Not a member!");
         
         OrganisationVerificationRequest memory request = OrganisationVerificationRequest({
-            id: s_VerificationCounter,
+            id: s_verificationCounter,
             initial_member: msg.sender,
             organisationContract: address(this),
             status: 0,
             description: _description,
-            timestamp: block.timestamp,
-            yes_votes: new address[](0),
-            no_votes: new address[](0)
+            timestamp: block.timestamp
         });
-        if(checkOwnership(initiator) == 1){
-            request.yes_votes.push(initiator);
+        if(checkOwnership(msg.sender)){
+            s_verificationYesVoters[s_verificationCounter].push(msg.sender);
         }
         
-        s_verificationIDtoVerification[s_VerificationCounter] = request;
-        s_userAddressToVerifications[initiator].push(request);
-        s_VerificationCounter++;
+        s_verificationIDtoVerification[s_verificationCounter] = request;
+        s_userAddressToVerifications[msg.sender].push(request);
+        s_verificationCounter++;
     }
 
     function voteOnVerificationRequest(uint256 verificationID, uint256 vote, uint256 treeTokenId) external onlyOwner {
@@ -202,15 +207,15 @@ contract Organization is Ownable{
         require(request.initial_member != msg.sender, "You cannot vote on your own request");
         
         if (vote == 1) {
-            request.yes_votes.push(msg.sender);
+            s_verificationYesVoters[verificationID].push(msg.sender);
         } else {
-            request.no_votes.push(msg.sender);
+            s_verificationNoVoters[verificationID].push(msg.sender);
         }
 
-        if (request.yes_votes.length == owners.length / 2 || request.yes_votes.length > owners.length / 2) {
+        if (s_verificationYesVoters[verificationID].length == owners.length / 2 || s_verificationYesVoters[verificationID].length > owners.length / 2) {
             request.status = 1; 
-            TreeNFTHandling(treeNFTContract).verifyTree(treeTokenId);
-        } else if (request.no_votes.length == owners.length / 2) {
+            s_treeNFTContract.verify(treeTokenId);
+        } else if (s_verificationNoVoters[verificationID].length == owners.length / 2) {
             request.status = 2; 
         }
     }
@@ -237,19 +242,20 @@ contract Organization is Ownable{
         return false;
     }
     
-    function getMembers() external view onlyOwner returns (address[] memory) {
+    function getMembers() external view returns (address[] memory) {
         return members;
     }
     
-    function getOwners() external view onlyOwner returns (address[] memory) {
+    function getOwners() external view returns (address[] memory) {
         return owners;
     }
     
-    function getMemberCount() external view onlyOwner returns (uint256) {
+    function getMemberCount() external view  returns (uint256) {
         return members.length;
     }
     
-    function getOrganizationInfo() external view onlyOwner returns (
+    function getOrganizationInfo() external view  returns (
+        address,
         uint256,
         string memory,
         string memory,
@@ -258,6 +264,6 @@ contract Organization is Ownable{
         address[] memory,
         uint256
     ) {
-        return (id, name, description, photoIpfsHash, owners, members, timeOfCreation);
+        return (address(this),id, name, description, photoIpfsHash, owners, members, timeOfCreation);
     }
 }

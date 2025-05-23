@@ -6,20 +6,18 @@ import "./Organisation.sol";
 import "./utils/structs.sol";
 import "./utils/errors.sol";
 
-contract OrganizationFactory is Ownable {
+contract OrganisationFactory is Ownable {
     uint256 private s_organizationCounter;
     address public treeNFTContract;
     
-    // Mappings to track organizations
     mapping(uint256 => address) private s_organizationIdToAddress;
-    mapping(address => uint256[]) private s_userToOrganizations;
+    mapping(address => uint256[]) public s_userToOrganizations;
+    mapping(address => uint256) private s_organisationAddressToId;
     mapping(address => bool) private s_isOrganization;
     
-    // Arrays to store all organizations
     address[] private s_allOrganizations;
     uint256[] private s_allOrganizationIds;
     
-    // Events
     event OrganizationCreated(
         uint256 indexed organizationId,
         address indexed organizationAddress,
@@ -47,7 +45,7 @@ contract OrganizationFactory is Ownable {
         organizationId = s_organizationCounter;
         
         // Deploy new Organization contract
-        Organization newOrganization = new Organization(
+        Organisation newOrganization = new Organisation(
             organizationId,
             _name,
             _description,
@@ -59,6 +57,7 @@ contract OrganizationFactory is Ownable {
         
         organizationAddress = address(newOrganization);
         s_organizationIdToAddress[organizationId] = organizationAddress;
+        s_organisationAddressToId[organizationAddress] = organizationId;
         s_userToOrganizations[msg.sender].push(organizationId);
         s_isOrganization[organizationAddress] = true;
         s_allOrganizations.push(organizationAddress);
@@ -76,6 +75,12 @@ contract OrganizationFactory is Ownable {
     }
     function getUserOrganizations(address _user) external view returns (uint256[] memory) {
         return s_userToOrganizations[_user];
+    }
+
+    function addUserToOrganization(address _user) external {
+        require(s_isOrganization[msg.sender], "Only organization can add user");
+        uint256 organisationId = s_organisationAddressToId[msg.sender];
+        s_userToOrganizations[_user].push(organisationId);
     }
 
     function getMyOrganizations() external view returns (uint256[] memory) {
@@ -110,18 +115,17 @@ contract OrganizationFactory is Ownable {
         organizationAddress = s_organizationIdToAddress[_organizationId];
         require(organizationAddress != address(0), "Organization does not exist");
         
-        Organization org = Organization(organizationAddress);
+        Organisation org = Organisation(organizationAddress);
         return org.getOrganizationInfo();
     }
     function getAllOrganizationDetails() external view returns (OrganizationDetails[] memory organizationDetails) {
         uint256 totalOrgs = s_allOrganizations.length;
         organizationDetails = new OrganizationDetails[](totalOrgs);
-        
         for (uint256 i = 0; i < totalOrgs; i++) {
             address orgAddress = s_allOrganizations[i];
-            Organization org = Organization(orgAddress);
-            
+            Organisation org = Organisation(orgAddress);
             try org.getOrganizationInfo() returns (
+                address orgAddress,
                 uint256 id,
                 string memory name,
                 string memory description,
@@ -144,7 +148,6 @@ contract OrganizationFactory is Ownable {
                     timeOfCreation: timeOfCreation
                 });
             } catch {
-                // Handle case where organization contract call fails
                 organizationDetails[i] = OrganizationDetails({
                     id: s_allOrganizationIds[i],
                     contractAddress: orgAddress,
@@ -175,17 +178,11 @@ contract OrganizationFactory is Ownable {
 
     function removeOrganization(address _organizationAddress) external onlyOwner {
         require(s_isOrganization[_organizationAddress], "Not a valid organization");
-        
-        // Mark as invalid
         s_isOrganization[_organizationAddress] = false;
-        
-        // Remove from s_allOrganizations array
         for (uint256 i = 0; i < s_allOrganizations.length; i++) {
             if (s_allOrganizations[i] == _organizationAddress) {
                 s_allOrganizations[i] = s_allOrganizations[s_allOrganizations.length - 1];
                 s_allOrganizations.pop();
-                
-                // Also remove corresponding ID
                 s_allOrganizationIds[i] = s_allOrganizationIds[s_allOrganizationIds.length - 1];
                 s_allOrganizationIds.pop();
                 break;

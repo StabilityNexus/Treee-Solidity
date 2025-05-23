@@ -29,8 +29,6 @@ struct OrganisationVerificationRequest {
     uint256 status;
     string description;
     uint256 timestamp;
-    address[] yes_votes;
-    address[] no_votes;
 }
 
 struct JoinRequest{
