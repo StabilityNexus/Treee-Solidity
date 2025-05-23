@@ -16,3 +16,4 @@ docs/
 # Others
 lib/
 .vscode/
+node_modules/
