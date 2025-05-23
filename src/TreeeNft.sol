@@ -26,7 +26,6 @@ contract TreeNft is ERC721, Ownable {
         return tokenId < s_tokenCounter && tokenId >= 0;
     }
 
-    // Mint a new Tree NFT with a custom image URI
     function mintNft(
         uint256 latitude, 
         uint256 longitude, 
@@ -37,6 +36,8 @@ contract TreeNft is ERC721, Ownable {
         string[] memory initialPhotos,  // Allow passing initial photos during minting
         address organisationAddress
     ) public {
+        // This function mints a new NFT for the user
+
         uint256 tokenId = s_tokenCounter;
         _safeMint(msg.sender, tokenId);
         address[] memory ancestors = new address[](1);
@@ -62,7 +63,9 @@ contract TreeNft is ERC721, Ownable {
         s_tokenCounter++;
     }
 
-    function markDead(uint256 tokenId) public {
+    function markDead(uint256 tokenId) public { 
+        // This function marks a tree as dead
+
         if (!_exists(tokenId)) revert TokenDoesNotExist();
         if(s_tokenIDtoTree[tokenId].death != type(uint256).max) revert TreeAlreadyDead();
         if(ownerOf(tokenId) != msg.sender) revert NotTreeOwner();
@@ -71,6 +74,8 @@ contract TreeNft is ERC721, Ownable {
     }
 
     function verify(uint256 tokenId) public {
+        // This function allows a verifier to verify a tree
+
         require(_exists(tokenId), "Token does not exist");
         if (!s_tokenIDtoUserVerification[tokenId][msg.sender]) {
             s_tokenIDtoUserVerification[tokenId][msg.sender] = true;
@@ -80,10 +85,14 @@ contract TreeNft is ERC721, Ownable {
     }
 
     function isVerified(uint256 tokenId, address verifier) public view returns (bool) {
+        // This function checks if a verifier has verified a tree
+
         return s_tokenIDtoUserVerification[tokenId][verifier];
     }
 
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
+        // This function returns the token URI for a given token ID
+
         require(_exists(tokenId), "Token does not exist");
         Tree memory tree = s_tokenIDtoTree[tokenId];
         string memory verifiersList = _getVerifiersString(tokenId);
@@ -112,8 +121,9 @@ contract TreeNft is ERC721, Ownable {
     }
 
     function getAllNFTs() public view returns (string[] memory) {
-        string[] memory allNFTs = new string[](s_tokenCounter);
+        // This function retrieves all NFTs in the contract
 
+        string[] memory allNFTs = new string[](s_tokenCounter);
         for (uint256 tokenId = 0; tokenId < s_tokenCounter; tokenId++) {
             Tree memory tree = s_tokenIDtoTree[tokenId];
             string memory verifiersList = _getVerifiersString(tokenId);
@@ -149,6 +159,8 @@ contract TreeNft is ERC721, Ownable {
     }
 
     function getNFTsByUser(address user) public view returns (string[] memory) {
+        // This function retrieves all NFTs owned by a specific user
+
         uint256[] memory userNFTs = s_userToNFTs[user];
         string[] memory nftDetails = new string[](userNFTs.length);
 
@@ -185,6 +197,8 @@ contract TreeNft is ERC721, Ownable {
         return nftDetails;
     }
     function getVerifiedTreesByUser(address verifier) public view returns (string[] memory) {
+        // This function retrieves all trees verified by a specific verifier
+
         uint256[] memory verifiedTokens = s_verifierToTokenIDs[verifier];
         string[] memory treeDetails = new string[](verifiedTokens.length);
         
@@ -218,10 +232,14 @@ contract TreeNft is ERC721, Ownable {
     }
 
     function _baseURI() internal pure override returns (string memory) {
+        // This function returns the base URI for the token metadata
+
         return "data:application/json;base64,";
     }
 
     function _getVerifiersString(uint256 tokenId) private view returns (string memory) {
+        // This function retrieves the verifiers for a given token ID
+
         address[] memory verifiers = s_tokenIDtoVerifiers[tokenId];
         uint256 length = verifiers.length;
 
@@ -240,6 +258,8 @@ contract TreeNft is ERC721, Ownable {
 
 
     function _uintToString(uint256 value) private pure returns (string memory) {
+        // This function converts a uint256 to a string
+
         if (value == 0) return "0";
         uint256 temp = value;
         uint256 digits;
@@ -257,6 +277,8 @@ contract TreeNft is ERC721, Ownable {
     }
 
     function _addressToString(address addr) private pure returns (string memory) {
+        // This function converts an address to a string
+        
         bytes32 value = bytes32(uint256(uint160(addr)));
         bytes memory alphabet = "0123456789abcdef";
         bytes memory str = new bytes(42);

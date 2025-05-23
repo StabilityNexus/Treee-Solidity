@@ -71,6 +71,7 @@ contract Organisation is Ownable{
     }
     
     function requestToJoin(string memory _description, address _user) external onlyOwner {
+    // This function is called by a user to request a user to join the organization
         
         if (checkMembership(_user)) {
             revert AlreadyVerified();
@@ -92,13 +93,16 @@ contract Organisation is Ownable{
     }
     
     function getJoinRequests() external view onlyOwner returns (JoinRequest[] memory){
+        // This function returns all join requests for the organization
+
         require(checkOwnership(msg.sender), "Not an owner");
         return s_joinRequests;
     }
     
     function processJoinRequest(uint256 requestID, uint256 status) external onlyOwner {
+        // This function is called by an owner to process a join request
+
         require(status == 1 || status == 2, "Invalid status"); 
-        
         JoinRequest storage request = s_requestIDtoJoinRequest[requestID];
         require(request.status == 0, "Request already processed");
         request.status = status;
@@ -115,13 +119,13 @@ contract Organisation is Ownable{
     }
     
     function leaveOrganization() external {
+        // This function allows a user to leave the organization
+
         require(checkMembership(msg.sender), "Not a member");
-        
         uint256 ownerCount = owners.length;
         if (ownerCount == 1 && owners[0] == msg.sender) {
             revert NeedAnotherOwner();
         }
-        
         bool found = false;
         for (uint i = 0; i < members.length; i++) {
             if (members[i] == msg.sender) {
@@ -145,6 +149,8 @@ contract Organisation is Ownable{
     }
 
     function removeMember(address member) external onlyOwner {
+        // This function allows an owner to remove a member from the organization
+
         require(checkMembership(member), "Not a member");
         for (uint i = 0; i < members.length; i++) {
             if (members[i] == member) {
@@ -165,23 +171,30 @@ contract Organisation is Ownable{
     }
 
     function getUserWhoRemoved(address user) external view returns (address, uint256) {
+        // This function returns the address of the user who removed the specified user from the organization
+
         require(!checkMembership(user), "Still a member!");
         return (s_removedUsertoUser[user], s_userToLeaveTime[user]);
     }
 
     function getUserJoinTime(address user) external view returns (uint256) {
+        // This function returns the join time of the specified user
+
         require(checkMembership(user), "Not a member!");
         return s_userToJoinTime[user];
     }
 
     function getUserLeaveTime(address user) external view returns (uint256) {
+        // This function returns the leave time of the specified user
+
         require(!checkMembership(user), "Still a member!");
         return s_userToLeaveTime[user];
     }
 
     function requestVerification(string memory _description, string[] memory _proofHashes) external {
+        // This function allows a user to request verification of a tree
+
         require(checkMembership(msg.sender), "Not a member!");
-        
         OrganisationVerificationRequest memory request = OrganisationVerificationRequest({
             id: s_verificationCounter,
             initial_member: msg.sender,
@@ -193,18 +206,17 @@ contract Organisation is Ownable{
         if(checkOwnership(msg.sender)){
             s_verificationYesVoters[s_verificationCounter].push(msg.sender);
         }
-        
         s_verificationIDtoVerification[s_verificationCounter] = request;
         s_userAddressToVerifications[msg.sender].push(request);
         s_verificationCounter++;
     }
 
     function voteOnVerificationRequest(uint256 verificationID, uint256 vote, uint256 treeTokenId) external onlyOwner {
-        require(vote == 1 || vote == 2, "Invalid vote");
+        // This function allows an owner to vote on a verification request
+
         OrganisationVerificationRequest storage request = s_verificationIDtoVerification[verificationID];
         require(request.status == 0, "Request already processed");
         require(request.initial_member != msg.sender, "You cannot vote on your own request");
-        
         if (vote == 1) {
             s_verificationYesVoters[verificationID].push(msg.sender);
         } else {
@@ -220,10 +232,14 @@ contract Organisation is Ownable{
     }
     
     function makeOwner(address newOwner) external onlyOwner {
+        // This function allows an owner to add a new owner to the organization
+
         owners.push(newOwner);
     }
     
     function checkOwnership(address user) public view  returns (bool) {
+        // This function checks if the specified user is an owner of the organization
+
         for (uint i = 0; i < owners.length; i++) {
             if (owners[i] == user) {
                 return true;
@@ -233,6 +249,8 @@ contract Organisation is Ownable{
     }
     
     function checkMembership(address user) public view returns (bool) {
+        // This function checks if the specified user is a member of the organization
+
         for (uint i = 0; i < members.length; i++) {
             if (members[i] == user) {
                 return true;
@@ -242,14 +260,20 @@ contract Organisation is Ownable{
     }
     
     function getMembers() external view returns (address[] memory) {
+        // This function returns the list of members in the organization
+
         return members;
     }
     
     function getOwners() external view returns (address[] memory) {
+        // This function returns the list of owners in the organization
+
         return owners;
     }
     
     function getMemberCount() external view  returns (uint256) {
+        // This function returns the count of members in the organization
+
         return members.length;
     }
     
@@ -263,6 +287,9 @@ contract Organisation is Ownable{
         address[] memory,
         uint256
     ) {
+        // This function returns detailed information about the organization
+        
         return (address(this),id, name, description, photoIpfsHash, owners, members, timeOfCreation);
     }
 }
+
