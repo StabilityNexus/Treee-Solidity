@@ -12,3 +12,4 @@ error InvalidNameInput();
 error InvalidDescriptionInput();
 error InvalidOrganisationIdInput();
 error NeedAnotherOwner();
+error OnlyOwner();

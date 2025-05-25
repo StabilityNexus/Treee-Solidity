@@ -18,6 +18,7 @@ contract Organisation{
     address[] public members;
     uint256 public timeOfCreation;
     address public founder;
+
     JoinRequest[] private s_joinRequests;
     TreeNft private s_treeNFTContract;
 
@@ -42,7 +43,7 @@ contract Organisation{
     mapping(address => uint256) private s_userToLeaveTime;
     
     modifier onlyOwner {
-        require(checkOwnership(msg.sender), "Not an owner");
+        require(checkOwnership(msg.sender), OnlyOwner());
         _;
     }
 
@@ -74,10 +75,10 @@ contract Organisation{
         s_treeNFTContract = TreeNft(_treeNFTContractAddress);
     }
     
-    function requestToJoin(string memory _description, address _user) external onlyOwner {
+    function requestToJoin(string memory _description) external returns (uint256) {
         // This function is called by a user to request a user to join the organisation
         
-        if (checkMembership(_user)) {
+        if (checkMembership(msg.sender)) {
             revert AlreadyVerified();
         }
         
@@ -87,15 +88,23 @@ contract Organisation{
             status: 0,
             description: _description,
             timestamp: block.timestamp,
-            reviewer: _user, 
+            reviewer: address(0), 
             organisationContract: address(this)
         });
         
         s_joinRequests.push(request);
         s_requestIDtoJoinRequest[s_requestCounter] = request;
         s_requestCounter++;
+        return request.id;
     }
     
+    function getJoinRequest(uint256 requestID) external view onlyOwner returns (JoinRequest memory){
+        // This function returns a specific join request by its ID
+
+        require(requestID < s_requestCounter, "Invalid request ID");
+        return s_requestIDtoJoinRequest[requestID];
+    }
+
     function getJoinRequests() external view onlyOwner returns (JoinRequest[] memory){
         // This function returns all join requests for the organisation
 
@@ -195,7 +204,7 @@ contract Organisation{
         return s_userToLeaveTime[user];
     }
 
-    function requestVerification(string memory _description, string[] memory _proofHashes) external {
+    function requestVerification(string memory _description, string[] memory _proofHashes, uint256 _treeNftID) external  returns (uint256) {
         // This function allows a user to request verification of a tree
 
         require(checkMembership(msg.sender), "Not a member!");
@@ -206,7 +215,8 @@ contract Organisation{
             status: 0,
             description: _description,
             timestamp: block.timestamp,
-            proofHashes: _proofHashes
+            proofHashes: _proofHashes,
+            treeNFTID: _treeNftID
         });
         if(checkOwnership(msg.sender)){
             s_verificationYesVoters[s_verificationCounter].push(msg.sender);
@@ -214,6 +224,7 @@ contract Organisation{
         s_verificationIDtoVerification[s_verificationCounter] = request;
         s_userAddressToVerifications[msg.sender].push(request);
         s_verificationCounter++;
+        return request.id;
     }
 
     function getVerificationRequest(uint256 verificationID) external view returns (OrganisationVerificationRequest memory) {
@@ -233,7 +244,7 @@ contract Organisation{
         return requests;
     }
 
-    function voteOnVerificationRequest(uint256 verificationID, uint256 vote, uint256 treeTokenId) external onlyOwner {
+    function voteOnVerificationRequest(uint256 verificationID, uint256 vote) external onlyOwner {
         // This function allows an owner to vote on a verification request
 
         OrganisationVerificationRequest storage request = s_verificationIDtoVerification[verificationID];
@@ -247,7 +258,7 @@ contract Organisation{
 
         if (s_verificationYesVoters[verificationID].length == owners.length / 2 || s_verificationYesVoters[verificationID].length > owners.length / 2) {
             request.status = 1; 
-            s_treeNFTContract.verify(treeTokenId);
+            s_treeNFTContract.verify(request.treeNFTID);
         } else if (s_verificationNoVoters[verificationID].length == owners.length / 2) {
             request.status = 2; 
         }

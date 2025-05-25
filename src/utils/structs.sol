@@ -30,6 +30,7 @@ struct OrganisationVerificationRequest {
     string description;
     uint256 timestamp;
     string[] proofHashes;
+    uint256 treeNFTID;
 }
 
 struct JoinRequest{
