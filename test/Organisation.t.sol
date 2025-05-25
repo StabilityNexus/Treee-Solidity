@@ -118,7 +118,7 @@ contract OrganisationTest is Test {
         // This test checks if the onlyOwner modifier works correctly by trying to call a function that requires ownership from a non-owner address.
 
         vm.prank(owner);
-        (uint256 orgId, address orgAddress) = factory.createOrganisation(NAME2, DESCRIPTION2, PHOTO_IPFS_HASH2);
+        (, address orgAddress) = factory.createOrganisation(NAME2, DESCRIPTION2, PHOTO_IPFS_HASH2);
         vm.stopPrank();
 
         vm.prank(user2);
@@ -159,7 +159,7 @@ contract OrganisationTest is Test {
         // This test checks if the leaveOrganisation function reverts when the only owner tries to leave the organisation.
 
         vm.prank(user1);
-        (uint256 orgId, address orgAddress) = factory.createOrganisation(NAME, DESCRIPTION, PHOTO_IPFS_HASH);
+        (, address orgAddress) = factory.createOrganisation(NAME, DESCRIPTION, PHOTO_IPFS_HASH);
         vm.stopPrank();
 
         vm.prank(user2);
@@ -178,7 +178,7 @@ contract OrganisationTest is Test {
 
     function test_leaveOrganisationMakingAnotherOwner() public {
         vm.prank(user1);
-        (uint256 orgId, address orgAddress) = factory.createOrganisation(NAME, DESCRIPTION, PHOTO_IPFS_HASH);
+        (, address orgAddress) = factory.createOrganisation(NAME, DESCRIPTION, PHOTO_IPFS_HASH);
         vm.stopPrank();
 
         vm.prank(user2);
