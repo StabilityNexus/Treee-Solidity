@@ -3,6 +3,7 @@ src = "src"
 out = "out"
 libs = ["lib"]
 ffi = true
+via_ir = true
 
 fs_permissions = [
     { access = "read", path = "./broadcast/" },

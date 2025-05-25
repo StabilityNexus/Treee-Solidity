@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-struct OrganizationDetails {
+struct OrganisationDetails {
     uint256 id;
     address contractAddress;
     string name;
@@ -29,6 +29,7 @@ struct OrganisationVerificationRequest {
     uint256 status;
     string description;
     uint256 timestamp;
+    string[] proofHashes;
 }
 
 struct JoinRequest{

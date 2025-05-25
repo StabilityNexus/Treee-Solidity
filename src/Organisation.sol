@@ -3,10 +3,10 @@ pragma solidity ^0.8.28;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./utils/structs.sol";
 import "./utils/errors.sol";
-import "./TreeeNft.sol";
+import "./TreeNft.sol";
 import "./OrganisationFactory.sol";
 
-contract Organisation is Ownable{
+contract Organisation{
     uint256 public immutable id;
     address public immutable organisationContract;
     address public treeNFTContract;
@@ -17,8 +17,10 @@ contract Organisation is Ownable{
     address[] public owners;
     address[] public members;
     uint256 public timeOfCreation;
+    address public founder;
     JoinRequest[] private s_joinRequests;
     TreeNft private s_treeNFTContract;
+
     
     uint256 private s_requestCounter;
     uint256 private s_verificationCounter;
@@ -39,7 +41,7 @@ contract Organisation is Ownable{
     mapping(address => uint256) private s_userToJoinTime;
     mapping(address => uint256) private s_userToLeaveTime;
     
-    modifier onlyOwner override {
+    modifier onlyOwner {
         require(checkOwnership(msg.sender), "Not an owner");
         _;
     }
@@ -51,15 +53,17 @@ contract Organisation is Ownable{
         string memory _photoIpfsHash,
         address _creator,
         address _factoryAddress,
-        address _treeNFTContractAddress
+        address _treeNFTContractAddress,
+        address _founder
 
-    ) Ownable(_factoryAddress) {
+    ) {
         id = _id;
         name = _name;
         description = _description;
         photoIpfsHash = _photoIpfsHash;
         organisationContract = address(this);
         organisationFactoryAddress = _factoryAddress;
+        founder = _founder;
         owners.push(_creator);
         members.push(_creator);
         s_requestCounter = 0;
@@ -71,7 +75,7 @@ contract Organisation is Ownable{
     }
     
     function requestToJoin(string memory _description, address _user) external onlyOwner {
-    // This function is called by a user to request a user to join the organization
+        // This function is called by a user to request a user to join the organisation
         
         if (checkMembership(_user)) {
             revert AlreadyVerified();
@@ -93,7 +97,7 @@ contract Organisation is Ownable{
     }
     
     function getJoinRequests() external view onlyOwner returns (JoinRequest[] memory){
-        // This function returns all join requests for the organization
+        // This function returns all join requests for the organisation
 
         require(checkOwnership(msg.sender), "Not an owner");
         return s_joinRequests;
@@ -114,12 +118,12 @@ contract Organisation is Ownable{
             if(s_userToLeaveTime[request.user] != 0){
                 s_userToLeaveTime[request.user] = 0;
             }
-            OrganisationFactory(organisationFactoryAddress).addUserToOrganization(request.user);
+            OrganisationFactory(organisationFactoryAddress).addUserToOrganisation(request.user);
         }
     }
     
-    function leaveOrganization() external {
-        // This function allows a user to leave the organization
+    function leaveOrganisation() external {
+        // This function allows a user to leave the organisation
 
         require(checkMembership(msg.sender), "Not a member");
         uint256 ownerCount = owners.length;
@@ -149,7 +153,7 @@ contract Organisation is Ownable{
     }
 
     function removeMember(address member) external onlyOwner {
-        // This function allows an owner to remove a member from the organization
+        // This function allows an owner to remove a member from the organisation
 
         require(checkMembership(member), "Not a member");
         for (uint i = 0; i < members.length; i++) {
@@ -171,7 +175,7 @@ contract Organisation is Ownable{
     }
 
     function getUserWhoRemoved(address user) external view returns (address, uint256) {
-        // This function returns the address of the user who removed the specified user from the organization
+        // This function returns the address of the user who removed the specified user from the organisation
 
         require(!checkMembership(user), "Still a member!");
         return (s_removedUsertoUser[user], s_userToLeaveTime[user]);
@@ -201,7 +205,8 @@ contract Organisation is Ownable{
             organisationContract: address(this),
             status: 0,
             description: _description,
-            timestamp: block.timestamp
+            timestamp: block.timestamp,
+            proofHashes: _proofHashes
         });
         if(checkOwnership(msg.sender)){
             s_verificationYesVoters[s_verificationCounter].push(msg.sender);
@@ -209,6 +214,23 @@ contract Organisation is Ownable{
         s_verificationIDtoVerification[s_verificationCounter] = request;
         s_userAddressToVerifications[msg.sender].push(request);
         s_verificationCounter++;
+    }
+
+    function getVerificationRequest(uint256 verificationID) external view returns (OrganisationVerificationRequest memory) {
+        // This function returns a specific verification request by its ID
+
+        require(verificationID < s_verificationCounter, "Invalid verification ID");
+        return s_verificationIDtoVerification[verificationID];
+    }
+    
+    function getVerificationRequests() external view returns (OrganisationVerificationRequest[] memory) {
+        // This function returns all verification requests for the organisation
+
+        OrganisationVerificationRequest[] memory requests = new OrganisationVerificationRequest[](s_verificationCounter);
+        for (uint256 i = 0; i < s_verificationCounter; i++) {
+            requests[i] = s_verificationIDtoVerification[i];
+        }
+        return requests;
     }
 
     function voteOnVerificationRequest(uint256 verificationID, uint256 vote, uint256 treeTokenId) external onlyOwner {
@@ -232,13 +254,13 @@ contract Organisation is Ownable{
     }
     
     function makeOwner(address newOwner) external onlyOwner {
-        // This function allows an owner to add a new owner to the organization
+        // This function allows an owner to add a new owner to the organisation
 
         owners.push(newOwner);
     }
     
     function checkOwnership(address user) public view  returns (bool) {
-        // This function checks if the specified user is an owner of the organization
+        // This function checks if the specified user is an owner of the organisation
 
         for (uint i = 0; i < owners.length; i++) {
             if (owners[i] == user) {
@@ -249,7 +271,7 @@ contract Organisation is Ownable{
     }
     
     function checkMembership(address user) public view returns (bool) {
-        // This function checks if the specified user is a member of the organization
+        // This function checks if the specified user is a member of the organisation
 
         for (uint i = 0; i < members.length; i++) {
             if (members[i] == user) {
@@ -260,24 +282,24 @@ contract Organisation is Ownable{
     }
     
     function getMembers() external view returns (address[] memory) {
-        // This function returns the list of members in the organization
+        // This function returns the list of members in the organisation
 
         return members;
     }
     
     function getOwners() external view returns (address[] memory) {
-        // This function returns the list of owners in the organization
+        // This function returns the list of owners in the organisation
 
         return owners;
     }
     
     function getMemberCount() external view  returns (uint256) {
-        // This function returns the count of members in the organization
+        // This function returns the count of members in the organisation
 
         return members.length;
     }
     
-    function getOrganizationInfo() external view  returns (
+    function getOrganisationInfo() external view  returns (
         address,
         uint256,
         string memory,
@@ -287,7 +309,7 @@ contract Organisation is Ownable{
         address[] memory,
         uint256
     ) {
-        // This function returns detailed information about the organization
+        // This function returns detailed information about the organisation
         
         return (address(this),id, name, description, photoIpfsHash, owners, members, timeOfCreation);
     }

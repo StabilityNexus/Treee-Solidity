@@ -7,116 +7,104 @@ import "./utils/structs.sol";
 import "./utils/errors.sol";
 
 contract OrganisationFactory is Ownable {
-    uint256 private s_organizationCounter;
+    uint256 private s_organisationCounter;
     address public treeNFTContract;
     
-    mapping(uint256 => address) private s_organizationIdToAddress;
-    mapping(address => uint256[]) public s_userToOrganizations;
+    mapping(uint256 => address) private s_organisationIdToAddress;
+    mapping(address => uint256[]) public s_userToOrganisations;
     mapping(address => uint256) private s_organisationAddressToId;
-    mapping(address => bool) private s_isOrganization;
+    mapping(address => bool) private s_isOrganisation;
     
-    address[] private s_allOrganizations;
-    uint256[] private s_allOrganizationIds;
-    
-    event OrganizationCreated(
-        uint256 indexed organizationId,
-        address indexed organizationAddress,
-        address indexed creator,
-        string name
-    );
-    
-    event TreeNFTContractUpdated(
-        address indexed oldContract,
-        address indexed newContract
-    );
+    address[] private s_allOrganisations;
+    uint256[] private s_allOrganisationIds;
     
     constructor(address _treeNFTContract) Ownable(msg.sender) {
-        s_organizationCounter = 0;
+        s_organisationCounter = 0;
         treeNFTContract = _treeNFTContract;
     }
-    function createOrganization(
+    function createOrganisation(
         string memory _name,
         string memory _description,
         string memory _photoIpfsHash
-    ) external returns (uint256 organizationId, address organizationAddress) {
+    ) external returns (uint256 organisationId, address organisationAddress) {
+        // This function allows a user to create a new organization.
+
         require(bytes(_name).length > 0, "Name cannot be empty");
         require(bytes(_description).length > 0, "Description cannot be empty");
-        organizationId = s_organizationCounter;
+        organisationId = s_organisationCounter;
         
         // Deploy new Organization contract
-        Organisation newOrganization = new Organisation(
-            organizationId,
+        Organisation newOrganisation = new Organisation(
+            organisationId,
             _name,
             _description,
             _photoIpfsHash,
             msg.sender,
             address(this),
-            treeNFTContract
+            treeNFTContract,
+            msg.sender
         );
-        organizationAddress = address(newOrganization);
-        s_organizationIdToAddress[organizationId] = organizationAddress;
-        s_organisationAddressToId[organizationAddress] = organizationId;
-        s_userToOrganizations[msg.sender].push(organizationId);
-        s_isOrganization[organizationAddress] = true;
-        s_allOrganizations.push(organizationAddress);
-        s_allOrganizationIds.push(organizationId);
-        s_organizationCounter++;
-        
-        emit OrganizationCreated(organizationId, organizationAddress, msg.sender, _name);
-        
-        return (organizationId, organizationAddress);
+        organisationAddress = address(newOrganisation);
+        s_organisationIdToAddress[organisationId] = organisationAddress;
+        s_organisationAddressToId[organisationAddress] = organisationId;
+        s_userToOrganisations[msg.sender].push(organisationId);
+        s_isOrganisation[organisationAddress] = true;
+        s_allOrganisations.push(organisationAddress);
+        s_allOrganisationIds.push(organisationId);
+        s_organisationCounter++;
+        return (organisationId, organisationAddress);
     }
-    function getOrganizationAddress(uint256 _organizationId) external view returns (address) {
+    function getOrganisationAddress(uint256 _organizationId) external view returns (address) {
         // This function retrives the address of an organization based on its ID.
 
-        address orgAddress = s_organizationIdToAddress[_organizationId];
+        address orgAddress = s_organisationIdToAddress[_organizationId];
         require(orgAddress != address(0), "Organization does not exist");
         return orgAddress;
     }
-    function getUserOrganizations(address _user) external view returns (uint256[] memory) {
+    function getUserOrganisations(address _user) external view returns (uint256[] memory) {
         // This function retrieves the list of organization IDs associated with a user.
 
-        return s_userToOrganizations[_user];
+        return s_userToOrganisations[_user];
     }
 
-    function addUserToOrganization(address _user) external {
+    function addUserToOrganisation(address _user) external {
         // This function allows an organization to add a user to its list of organizations.
 
-        require(s_isOrganization[msg.sender], "Only organization can add user");
+        require(s_isOrganisation[msg.sender], "Only organization can add user");
         uint256 organisationId = s_organisationAddressToId[msg.sender];
-        s_userToOrganizations[_user].push(organisationId);
+        s_userToOrganisations[_user].push(organisationId);
     }
 
-    function getMyOrganizations() external view returns (uint256[] memory) {
+    function getMyOrganisations() external view returns (uint256[] memory) {
         // This function retrieves the list of organization IDs associated with the caller.
 
-        return s_userToOrganizations[msg.sender];
+        return s_userToOrganisations[msg.sender];
     }
 
-    function getAllOrganizations() external view returns (address[] memory) {
+    function getAllOrganisations() external view returns (address[] memory) {
         // This function retrieves the list of all organization addresses.
 
-        return s_allOrganizations;
+        return s_allOrganisations;
     }
-    function getAllOrganizationIds() external view returns (uint256[] memory) {
+    function getAllOrganisationIds() external view returns (uint256[] memory) {
         // This function retrieves the list of all organization IDs.
 
-        return s_allOrganizationIds;
+        return s_allOrganisationIds;
     }
 
-    function getOrganizationCount() external view returns (uint256) {
-        // This function retrieves the total number of organizations created.
+    function getOrganisationCount() external view returns (uint256) {
+        // This function retrieves the total number of organisations created.
 
-        return s_organizationCounter;
+        return s_organisationCounter;
     }
 
-    function isValidOrganization(address _organizationAddress) external view returns (bool) {
-        // This function checks if the provided address is a valid organization.
+    function isValidOrganisation(address _organisationAddress) external view returns (bool) {
+        // This function checks if the provided address is a valid organisation.
 
-        return s_isOrganization[_organizationAddress];
+        return s_isOrganisation[_organisationAddress];
     }
 
-    function getOrganizationInfo(uint256 _organizationId) external view returns (
+    function getOrganisationInfo(uint256 _organizationId) external view returns (
         address organizationAddress,
         uint256 id,
         string memory name,
@@ -128,21 +116,21 @@ contract OrganisationFactory is Ownable {
     ) {
         // This function retrieves detailed information about an organization based on its ID.
 
-        organizationAddress = s_organizationIdToAddress[_organizationId];
+        organizationAddress = s_organisationIdToAddress[_organizationId];
         require(organizationAddress != address(0), "Organization does not exist");
         
         Organisation org = Organisation(organizationAddress);
-        return org.getOrganizationInfo();
+        return org.getOrganisationInfo();
     }
-    function getAllOrganizationDetails() external view returns (OrganizationDetails[] memory organizationDetails) {
+    function getAllOrganisationDetails() external view returns (OrganisationDetails[] memory organizationDetails) {
         // This function retrieves detailed information about all organizations.
 
-        uint256 totalOrgs = s_allOrganizations.length;
-        organizationDetails = new OrganizationDetails[](totalOrgs);
+        uint256 totalOrgs = s_allOrganisations.length;
+        organizationDetails = new OrganisationDetails[](totalOrgs);
         for (uint256 i = 0; i < totalOrgs; i++) {
-            address orgAddress = s_allOrganizations[i];
-            Organisation org = Organisation(orgAddress);
-            try org.getOrganizationInfo() returns (
+            address organisationAddress = s_allOrganisations[i];
+            Organisation org = Organisation(organisationAddress);
+            try org.getOrganisationInfo() returns (
                 address orgAddress,
                 uint256 id,
                 string memory name,
@@ -152,7 +140,7 @@ contract OrganisationFactory is Ownable {
                 address[] memory members,
                 uint256 timeOfCreation
             ) {
-                organizationDetails[i] = OrganizationDetails({
+                organizationDetails[i] = OrganisationDetails({
                     id: id,
                     contractAddress: orgAddress,
                     name: name,
@@ -162,13 +150,13 @@ contract OrganisationFactory is Ownable {
                     members: members,
                     ownerCount: owners.length,
                     memberCount: members.length,
-                    isActive: s_isOrganization[orgAddress],
+                    isActive: s_isOrganisation[orgAddress],
                     timeOfCreation: timeOfCreation
                 });
             } catch {
-                organizationDetails[i] = OrganizationDetails({
-                    id: s_allOrganizationIds[i],
-                    contractAddress: orgAddress,
+                organizationDetails[i] = OrganisationDetails({
+                    id: s_allOrganisationIds[i],
+                    contractAddress: organisationAddress,
                     name: "ERROR: Unable to fetch",
                     description: "ERROR: Contract call failed",
                     photoIpfsHash: "",
@@ -189,22 +177,20 @@ contract OrganisationFactory is Ownable {
         // This function updates the address of the Tree NFT contract.
 
         require(_newTreeNFTContract != address(0), "Invalid contract address");
-        address oldContract = treeNFTContract;
         treeNFTContract = _newTreeNFTContract;
-        emit TreeNFTContractUpdated(oldContract, _newTreeNFTContract);
     }
 
-    function removeOrganization(address _organizationAddress) external onlyOwner {
+    function removeOrganisation(address _organizationAddress) external onlyOwner {
         // This function allows the owner to remove an organization from the factory.
 
-        require(s_isOrganization[_organizationAddress], "Not a valid organization");
-        s_isOrganization[_organizationAddress] = false;
-        for (uint256 i = 0; i < s_allOrganizations.length; i++) {
-            if (s_allOrganizations[i] == _organizationAddress) {
-                s_allOrganizations[i] = s_allOrganizations[s_allOrganizations.length - 1];
-                s_allOrganizations.pop();
-                s_allOrganizationIds[i] = s_allOrganizationIds[s_allOrganizationIds.length - 1];
-                s_allOrganizationIds.pop();
+        require(s_isOrganisation[_organizationAddress], "Not a valid organization");
+        s_isOrganisation[_organizationAddress] = false;
+        for (uint256 i = 0; i < s_allOrganisations.length; i++) {
+            if (s_allOrganisations[i] == _organizationAddress) {
+                s_allOrganisations[i] = s_allOrganisations[s_allOrganisations.length - 1];
+                s_allOrganisations.pop();
+                s_allOrganisationIds[i] = s_allOrganisationIds[s_allOrganisationIds.length - 1];
+                s_allOrganisationIds.pop();
                 break;
             }
         }
@@ -212,7 +198,6 @@ contract OrganisationFactory is Ownable {
     
     function getTreeNFTContract() external view returns (address) {
         // This function retrieves the address of the Tree NFT contract.
-
         return treeNFTContract;
     }
 }
