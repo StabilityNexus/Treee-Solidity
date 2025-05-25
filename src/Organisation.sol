@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
+
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./utils/structs.sol";
 import "./utils/errors.sol";
 import "./TreeNft.sol";
 import "./OrganisationFactory.sol";
 
-contract Organisation{
+contract Organisation {
     uint256 public immutable id;
     address public immutable organisationContract;
     address public treeNFTContract;
@@ -22,7 +23,6 @@ contract Organisation{
     JoinRequest[] private s_joinRequests;
     TreeNft private s_treeNFTContract;
 
-    
     uint256 private s_requestCounter;
     uint256 private s_verificationCounter;
     uint256 private s_leftMembersCounter;
@@ -31,18 +31,17 @@ contract Organisation{
     mapping(address => address) private s_removedUsertoUser;
     mapping(uint256 => address) private s_leftMembers;
 
-
     mapping(address => User) private s_addressToUser;
     mapping(uint256 => OrganisationVerificationRequest) private s_verificationIDtoVerification;
     mapping(address => OrganisationVerificationRequest[]) private s_userAddressToVerifications;
 
-    mapping(uint256 => address[]) private s_verificationYesVoters; 
+    mapping(uint256 => address[]) private s_verificationYesVoters;
     mapping(uint256 => address[]) private s_verificationNoVoters;
 
     mapping(address => uint256) private s_userToJoinTime;
     mapping(address => uint256) private s_userToLeaveTime;
-    
-    modifier onlyOwner {
+
+    modifier onlyOwner() {
         require(checkOwnership(msg.sender), OnlyOwner());
         _;
     }
@@ -56,7 +55,6 @@ contract Organisation{
         address _factoryAddress,
         address _treeNFTContractAddress,
         address _founder
-
     ) {
         id = _id;
         name = _name;
@@ -74,48 +72,48 @@ contract Organisation{
         treeNFTContract = _treeNFTContractAddress;
         s_treeNFTContract = TreeNft(_treeNFTContractAddress);
     }
-    
+
     function requestToJoin(string memory _description) external returns (uint256) {
         // This function is called by a user to request a user to join the organisation
-        
+
         if (checkMembership(msg.sender)) {
             revert AlreadyVerified();
         }
-        
+
         JoinRequest memory request = JoinRequest({
             id: s_requestCounter,
             user: msg.sender,
             status: 0,
             description: _description,
             timestamp: block.timestamp,
-            reviewer: address(0), 
+            reviewer: address(0),
             organisationContract: address(this)
         });
-        
+
         s_joinRequests.push(request);
         s_requestIDtoJoinRequest[s_requestCounter] = request;
         s_requestCounter++;
         return request.id;
     }
-    
-    function getJoinRequest(uint256 requestID) external view onlyOwner returns (JoinRequest memory){
+
+    function getJoinRequest(uint256 requestID) external view onlyOwner returns (JoinRequest memory) {
         // This function returns a specific join request by its ID
 
         require(requestID < s_requestCounter, "Invalid request ID");
         return s_requestIDtoJoinRequest[requestID];
     }
 
-    function getJoinRequests() external view onlyOwner returns (JoinRequest[] memory){
+    function getJoinRequests() external view onlyOwner returns (JoinRequest[] memory) {
         // This function returns all join requests for the organisation
 
         require(checkOwnership(msg.sender), "Not an owner");
         return s_joinRequests;
     }
-    
+
     function processJoinRequest(uint256 requestID, uint256 status) external onlyOwner {
         // This function is called by an owner to process a join request
 
-        require(status == 1 || status == 2, "Invalid status"); 
+        require(status == 1 || status == 2, "Invalid status");
         JoinRequest storage request = s_requestIDtoJoinRequest[requestID];
         require(request.status == 0, "Request already processed");
         request.status = status;
@@ -124,13 +122,13 @@ contract Organisation{
         if (status == 1) {
             members.push(request.user);
             s_userToJoinTime[request.user] = block.timestamp;
-            if(s_userToLeaveTime[request.user] != 0){
+            if (s_userToLeaveTime[request.user] != 0) {
                 s_userToLeaveTime[request.user] = 0;
             }
             OrganisationFactory(organisationFactoryAddress).addUserToOrganisation(request.user);
         }
     }
-    
+
     function leaveOrganisation() external {
         // This function allows a user to leave the organisation
 
@@ -140,7 +138,7 @@ contract Organisation{
             revert NeedAnotherOwner();
         }
         bool found = false;
-        for (uint i = 0; i < members.length; i++) {
+        for (uint256 i = 0; i < members.length; i++) {
             if (members[i] == msg.sender) {
                 members[i] = members[members.length - 1];
                 members.pop();
@@ -149,7 +147,7 @@ contract Organisation{
             }
         }
         require(found, "User is not a member");
-        for (uint i = 0; i < owners.length; i++) {
+        for (uint256 i = 0; i < owners.length; i++) {
             if (owners[i] == msg.sender) {
                 owners[i] = owners[owners.length - 1];
                 owners.pop();
@@ -165,14 +163,14 @@ contract Organisation{
         // This function allows an owner to remove a member from the organisation
 
         require(checkMembership(member), "Not a member");
-        for (uint i = 0; i < members.length; i++) {
+        for (uint256 i = 0; i < members.length; i++) {
             if (members[i] == member) {
                 members[i] = members[members.length - 1];
                 members.pop();
                 break;
             }
         }
-        for (uint i = 0; i < owners.length; i++) {
+        for (uint256 i = 0; i < owners.length; i++) {
             if (owners[i] == member) {
                 owners[i] = owners[owners.length - 1];
                 owners.pop();
@@ -204,7 +202,10 @@ contract Organisation{
         return s_userToLeaveTime[user];
     }
 
-    function requestVerification(string memory _description, string[] memory _proofHashes, uint256 _treeNftID) external  returns (uint256) {
+    function requestVerification(string memory _description, string[] memory _proofHashes, uint256 _treeNftID)
+        external
+        returns (uint256)
+    {
         // This function allows a user to request verification of a tree
 
         require(checkMembership(msg.sender), "Not a member!");
@@ -218,7 +219,7 @@ contract Organisation{
             proofHashes: _proofHashes,
             treeNFTID: _treeNftID
         });
-        if(checkOwnership(msg.sender)){
+        if (checkOwnership(msg.sender)) {
             s_verificationYesVoters[s_verificationCounter].push(msg.sender);
         }
         s_verificationIDtoVerification[s_verificationCounter] = request;
@@ -227,13 +228,17 @@ contract Organisation{
         return request.id;
     }
 
-    function getVerificationRequest(uint256 verificationID) external view returns (OrganisationVerificationRequest memory) {
+    function getVerificationRequest(uint256 verificationID)
+        external
+        view
+        returns (OrganisationVerificationRequest memory)
+    {
         // This function returns a specific verification request by its ID
 
         require(verificationID < s_verificationCounter, "Invalid verification ID");
         return s_verificationIDtoVerification[verificationID];
     }
-    
+
     function getVerificationRequests() external view returns (OrganisationVerificationRequest[] memory) {
         // This function returns all verification requests for the organisation
 
@@ -256,73 +261,79 @@ contract Organisation{
             s_verificationNoVoters[verificationID].push(msg.sender);
         }
 
-        if (s_verificationYesVoters[verificationID].length == owners.length / 2 || s_verificationYesVoters[verificationID].length > owners.length / 2) {
-            request.status = 1; 
+        if (
+            s_verificationYesVoters[verificationID].length == owners.length / 2
+                || s_verificationYesVoters[verificationID].length > owners.length / 2
+        ) {
+            request.status = 1;
             s_treeNFTContract.verify(request.treeNFTID);
         } else if (s_verificationNoVoters[verificationID].length == owners.length / 2) {
-            request.status = 2; 
+            request.status = 2;
         }
     }
-    
+
     function makeOwner(address newOwner) external onlyOwner {
         // This function allows an owner to add a new owner to the organisation
 
         owners.push(newOwner);
     }
-    
-    function checkOwnership(address user) public view  returns (bool) {
+
+    function checkOwnership(address user) public view returns (bool) {
         // This function checks if the specified user is an owner of the organisation
 
-        for (uint i = 0; i < owners.length; i++) {
+        for (uint256 i = 0; i < owners.length; i++) {
             if (owners[i] == user) {
                 return true;
             }
         }
         return false;
     }
-    
+
     function checkMembership(address user) public view returns (bool) {
         // This function checks if the specified user is a member of the organisation
 
-        for (uint i = 0; i < members.length; i++) {
+        for (uint256 i = 0; i < members.length; i++) {
             if (members[i] == user) {
                 return true;
             }
         }
         return false;
     }
-    
+
     function getMembers() external view returns (address[] memory) {
         // This function returns the list of members in the organisation
 
         return members;
     }
-    
+
     function getOwners() external view returns (address[] memory) {
         // This function returns the list of owners in the organisation
 
         return owners;
     }
-    
-    function getMemberCount() external view  returns (uint256) {
+
+    function getMemberCount() external view returns (uint256) {
         // This function returns the count of members in the organisation
 
         return members.length;
     }
-    
-    function getOrganisationInfo() external view  returns (
-        address,
-        uint256,
-        string memory,
-        string memory,
-        string memory,
-        address[] memory,
-        address[] memory,
-        uint256
-    ) {
+
+    function getOrganisationInfo()
+        external
+        view
+        returns (
+            address,
+            uint256,
+            string memory,
+            string memory,
+            string memory,
+            address[] memory,
+            address[] memory,
+            uint256
+        )
+    {
         // This function returns detailed information about the organisation
-        
-        return (address(this),id, name, description, photoIpfsHash, owners, members, timeOfCreation);
+
+        return (address(this), id, name, description, photoIpfsHash, owners, members, timeOfCreation);
     }
 }
-

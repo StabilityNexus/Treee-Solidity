@@ -27,13 +27,13 @@ contract TreeNft is ERC721, Ownable {
     }
 
     function mintNft(
-        uint256 latitude, 
-        uint256 longitude, 
-        string memory species, 
-        string memory imageUri, 
+        uint256 latitude,
+        uint256 longitude,
+        string memory species,
+        string memory imageUri,
         string memory qrIpfsHash,
         string memory geoHash,
-        string[] memory initialPhotos,  // Allow passing initial photos during minting
+        string[] memory initialPhotos, // Allow passing initial photos during minting
         address organisationAddress
     ) public {
         // This function mints a new NFT for the user
@@ -47,11 +47,11 @@ contract TreeNft is ERC721, Ownable {
             latitude,
             longitude,
             block.timestamp,
-            type(uint256).max, 
+            type(uint256).max,
             species,
             imageUri,
             qrIpfsHash,
-            initialPhotos, 
+            initialPhotos,
             geoHash,
             ancestors,
             organisationAddress,
@@ -63,12 +63,12 @@ contract TreeNft is ERC721, Ownable {
         s_tokenCounter++;
     }
 
-    function markDead(uint256 tokenId) public { 
+    function markDead(uint256 tokenId) public {
         // This function marks a tree as dead
 
         if (!_exists(tokenId)) revert TokenDoesNotExist();
-        if(s_tokenIDtoTree[tokenId].death != type(uint256).max) revert TreeAlreadyDead();
-        if(ownerOf(tokenId) != msg.sender) revert NotTreeOwner();
+        if (s_tokenIDtoTree[tokenId].death != type(uint256).max) revert TreeAlreadyDead();
+        if (ownerOf(tokenId) != msg.sender) revert NotTreeOwner();
         s_tokenIDtoTree[tokenId].death = block.timestamp;
         s_deathCounter++;
     }
@@ -80,7 +80,7 @@ contract TreeNft is ERC721, Ownable {
         if (!s_tokenIDtoUserVerification[tokenId][msg.sender]) {
             s_tokenIDtoUserVerification[tokenId][msg.sender] = true;
             s_tokenIDtoVerifiers[tokenId].push(msg.sender);
-            s_verifierToTokenIDs[msg.sender].push(tokenId); 
+            s_verifierToTokenIDs[msg.sender].push(tokenId);
         }
     }
 
@@ -98,7 +98,7 @@ contract TreeNft is ERC721, Ownable {
         string memory verifiersList = _getVerifiersString(tokenId);
 
         string memory json = string(
-            abi.encodePacked( 
+            abi.encodePacked(
                 '{"name":"TreeNFT #',
                 _uintToString(tokenId),
                 '", "description":"A Tree NFT for planting a tree", ',
@@ -196,16 +196,17 @@ contract TreeNft is ERC721, Ownable {
 
         return nftDetails;
     }
+
     function getVerifiedTreesByUser(address verifier) public view returns (string[] memory) {
         // This function retrieves all trees verified by a specific verifier
 
         uint256[] memory verifiedTokens = s_verifierToTokenIDs[verifier];
         string[] memory treeDetails = new string[](verifiedTokens.length);
-        
+
         for (uint256 i = 0; i < verifiedTokens.length; i++) {
             uint256 tokenId = verifiedTokens[i];
             Tree memory tree = s_tokenIDtoTree[tokenId];
-            
+
             // Format the tree information similar to other view functions
             treeDetails[i] = string(
                 abi.encodePacked(
@@ -227,7 +228,7 @@ contract TreeNft is ERC721, Ownable {
                 )
             );
         }
-        
+
         return treeDetails;
     }
 
@@ -256,7 +257,6 @@ contract TreeNft is ERC721, Ownable {
         return verifiersList;
     }
 
-
     function _uintToString(uint256 value) private pure returns (string memory) {
         // This function converts a uint256 to a string
 
@@ -278,7 +278,7 @@ contract TreeNft is ERC721, Ownable {
 
     function _addressToString(address addr) private pure returns (string memory) {
         // This function converts an address to a string
-        
+
         bytes32 value = bytes32(uint256(uint160(addr)));
         bytes memory alphabet = "0123456789abcdef";
         bytes memory str = new bytes(42);

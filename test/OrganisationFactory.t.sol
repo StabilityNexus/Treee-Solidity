@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
+
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -28,11 +29,11 @@ contract OrganisationFactoryTest is Test {
     function setUp() public {
         treeNft = new TreeNft();
         vm.startPrank(owner);
-        factory = new OrganisationFactory(address(treeNft)); 
+        factory = new OrganisationFactory(address(treeNft));
         vm.stopPrank();
     }
 
-    function test_Constructor() public view{
+    function test_Constructor() public view {
         // This test checks if the constructor initializes the factory correctly by verifying the owner, treeNFTContract, and organisation count.
 
         assertEq(factory.owner(), owner);
@@ -40,21 +41,23 @@ contract OrganisationFactoryTest is Test {
         assertEq(factory.getOrganisationCount(), 0);
     }
 
-    function test_CreateOrganisation() public{
+    function test_CreateOrganisation() public {
         // This test checks if the createOrganisation function works correctly by creating an organisation and verifying its details.
 
         vm.prank(user1);
         (uint256 orgId, address orgAddress) = factory.createOrganisation(NAME1, DESCRIPTION1, PHOTO_IPFS_HASH1);
         assertEq(orgId, 0);
         assertEq(factory.getOrganisationCount(), 1);
-        (address organizationAddress,
-        uint256 id,
-        string memory name,
-        string memory description,
-        string memory photoIpfsHash,
-        address[] memory owners,
-        address[] memory members,
-        uint256 timeOfCreation) = factory.getOrganisationInfo(orgId);
+        (
+            address organizationAddress,
+            uint256 id,
+            string memory name,
+            string memory description,
+            string memory photoIpfsHash,
+            address[] memory owners,
+            address[] memory members,
+            uint256 timeOfCreation
+        ) = factory.getOrganisationInfo(orgId);
         assert(organizationAddress == orgAddress);
         assertEq(id, orgId);
         assertEq(name, NAME1);
@@ -62,7 +65,7 @@ contract OrganisationFactoryTest is Test {
         assertEq(photoIpfsHash, PHOTO_IPFS_HASH1);
         assertEq(owners[0], user1);
         assertEq(members.length, 1);
-        assertEq(timeOfCreation, block.timestamp); 
+        assertEq(timeOfCreation, block.timestamp);
     }
 
     function test_getMyOrganisations() public {
@@ -81,7 +84,7 @@ contract OrganisationFactoryTest is Test {
         vm.startPrank(user2);
         uint256[] memory user2Orgs = factory.getMyOrganisations();
         vm.stopPrank();
-        
+
         assertEq(user1Orgs.length, 1);
         assertEq(user2Orgs.length, 1);
         assertEq(user1Orgs[0], 0);

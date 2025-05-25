@@ -9,40 +9,33 @@ import "./utils/errors.sol";
 contract OrganisationFactory is Ownable {
     uint256 private s_organisationCounter;
     address public treeNFTContract;
-    
+
     mapping(uint256 => address) private s_organisationIdToAddress;
     mapping(address => uint256[]) public s_userToOrganisations;
     mapping(address => uint256) private s_organisationAddressToId;
     mapping(address => bool) private s_isOrganisation;
-    
+
     address[] private s_allOrganisations;
     uint256[] private s_allOrganisationIds;
-    
+
     constructor(address _treeNFTContract) Ownable(msg.sender) {
         s_organisationCounter = 0;
         treeNFTContract = _treeNFTContract;
     }
-    function createOrganisation(
-        string memory _name,
-        string memory _description,
-        string memory _photoIpfsHash
-    ) external returns (uint256 organisationId, address organisationAddress) {
+
+    function createOrganisation(string memory _name, string memory _description, string memory _photoIpfsHash)
+        external
+        returns (uint256 organisationId, address organisationAddress)
+    {
         // This function allows a user to create a new organization.
 
         require(bytes(_name).length > 0, "Name cannot be empty");
         require(bytes(_description).length > 0, "Description cannot be empty");
         organisationId = s_organisationCounter;
-        
+
         // Deploy new Organization contract
         Organisation newOrganisation = new Organisation(
-            organisationId,
-            _name,
-            _description,
-            _photoIpfsHash,
-            msg.sender,
-            address(this),
-            treeNFTContract,
-            msg.sender
+            organisationId, _name, _description, _photoIpfsHash, msg.sender, address(this), treeNFTContract, msg.sender
         );
         organisationAddress = address(newOrganisation);
         s_organisationIdToAddress[organisationId] = organisationAddress;
@@ -54,6 +47,7 @@ contract OrganisationFactory is Ownable {
         s_organisationCounter++;
         return (organisationId, organisationAddress);
     }
+
     function getOrganisationAddress(uint256 _organizationId) external view returns (address) {
         // This function retrives the address of an organization based on its ID.
 
@@ -61,6 +55,7 @@ contract OrganisationFactory is Ownable {
         require(orgAddress != address(0), "Organization does not exist");
         return orgAddress;
     }
+
     function getUserOrganisations(address _user) external view returns (uint256[] memory) {
         // This function retrieves the list of organization IDs associated with a user.
 
@@ -86,6 +81,7 @@ contract OrganisationFactory is Ownable {
 
         return s_allOrganisations;
     }
+
     function getAllOrganisationIds() external view returns (uint256[] memory) {
         // This function retrieves the list of all organization IDs.
 
@@ -104,24 +100,29 @@ contract OrganisationFactory is Ownable {
         return s_isOrganisation[_organisationAddress];
     }
 
-    function getOrganisationInfo(uint256 _organizationId) external view returns (
-        address organizationAddress,
-        uint256 id,
-        string memory name,
-        string memory description,
-        string memory photoIpfsHash,
-        address[] memory owners,
-        address[] memory members,
-        uint256 timeOfCreation
-    ) {
+    function getOrganisationInfo(uint256 _organizationId)
+        external
+        view
+        returns (
+            address organizationAddress,
+            uint256 id,
+            string memory name,
+            string memory description,
+            string memory photoIpfsHash,
+            address[] memory owners,
+            address[] memory members,
+            uint256 timeOfCreation
+        )
+    {
         // This function retrieves detailed information about an organization based on its ID.
 
         organizationAddress = s_organisationIdToAddress[_organizationId];
         require(organizationAddress != address(0), "Organization does not exist");
-        
+
         Organisation org = Organisation(organizationAddress);
         return org.getOrganisationInfo();
     }
+
     function getAllOrganisationDetails() external view returns (OrganisationDetails[] memory organizationDetails) {
         // This function retrieves detailed information about all organizations.
 
@@ -169,7 +170,7 @@ contract OrganisationFactory is Ownable {
                 });
             }
         }
-        
+
         return organizationDetails;
     }
 
@@ -195,7 +196,7 @@ contract OrganisationFactory is Ownable {
             }
         }
     }
-    
+
     function getTreeNFTContract() external view returns (address) {
         // This function retrieves the address of the Tree NFT contract.
         return treeNFTContract;

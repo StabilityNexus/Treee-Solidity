@@ -33,11 +33,11 @@ struct OrganisationVerificationRequest {
     uint256 treeNFTID;
 }
 
-struct JoinRequest{
+struct JoinRequest {
     uint256 id;
     address user;
     address organisationContract;
-    uint256 status;  // 0 = pending, 1 = approved, 2 = denied
+    uint256 status; // 0 = pending, 1 = approved, 2 = denied
     string description;
     uint256 timestamp;
     address reviewer;
@@ -56,13 +56,13 @@ struct Tree {
     uint256 planting;
     uint256 death;
     string species;
-    string imageUri; 
+    string imageUri;
     string qrIpfsHash;
-    string[] photos; 
+    string[] photos;
     string geoHash;
     address[] ancestors;
     address organisationAddress;
-    Verification [] verifiers;
+    Verification[] verifiers;
     uint256 lastCareTimestamp;
     uint256 careCount;
- }
+}
