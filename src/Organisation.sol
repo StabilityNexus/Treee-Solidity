@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "./utils/structs.sol";
 import "./utils/errors.sol";
 import "./TreeNft.sol";
@@ -9,8 +8,6 @@ import "./OrganisationFactory.sol";
 
 contract Organisation {
     uint256 public immutable id;
-    address public immutable organisationContract;
-    address public treeNFTContract;
     string public name;
     string public description;
     string public photoIpfsHash;
@@ -21,28 +18,29 @@ contract Organisation {
     address public founder;
 
     JoinRequest[] private s_joinRequests;
-    TreeNft private s_treeNFTContract;
+    TreeNft public treeNFTContract;
 
     uint256 private s_requestCounter;
     uint256 private s_verificationCounter;
     uint256 private s_leftMembersCounter;
 
     mapping(uint256 => JoinRequest) private s_requestIDtoJoinRequest;
-    mapping(address => address) private s_removedUsertoUser;
-    mapping(uint256 => address) private s_leftMembers;
 
-    mapping(address => User) private s_addressToUser;
     mapping(uint256 => OrganisationVerificationRequest) private s_verificationIDtoVerification;
     mapping(address => OrganisationVerificationRequest[]) private s_userAddressToVerifications;
-
     mapping(uint256 => address[]) private s_verificationYesVoters;
     mapping(uint256 => address[]) private s_verificationNoVoters;
 
-    mapping(address => uint256) private s_userToJoinTime;
-    mapping(address => uint256) private s_userToLeaveTime;
+    event UserAddedToOrganisation(
+        address indexed user, address indexed organisationContract, uint256 timestamp, address by_user
+    );
+
+    event UserRemovedFromOrganisation(
+        address indexed user, address indexed organisationContract, uint256 timestamp, address by_user
+    );
 
     modifier onlyOwner() {
-        require(checkOwnership(msg.sender), OnlyOwner());
+        if (!checkOwnership(msg.sender)) revert OnlyOwner();
         _;
     }
 
@@ -56,11 +54,14 @@ contract Organisation {
         address _treeNFTContractAddress,
         address _founder
     ) {
+        require(_creator != address(0), "Invalid creator address");
+        require(_factoryAddress != address(0), "Invalid factory address");
+        require(_treeNFTContractAddress != address(0), "Invalid tree NFT address");
+        require(bytes(_name).length > 0, "Name cannot be empty");
         id = _id;
         name = _name;
         description = _description;
         photoIpfsHash = _photoIpfsHash;
-        organisationContract = address(this);
         organisationFactoryAddress = _factoryAddress;
         founder = _founder;
         owners.push(_creator);
@@ -69,8 +70,7 @@ contract Organisation {
         s_leftMembersCounter = 0;
         s_verificationCounter = 0;
         timeOfCreation = block.timestamp;
-        treeNFTContract = _treeNFTContractAddress;
-        s_treeNFTContract = TreeNft(_treeNFTContractAddress);
+        treeNFTContract = TreeNft(_treeNFTContractAddress);
     }
 
     function requestToJoin(string memory _description) external returns (uint256) {
@@ -106,7 +106,6 @@ contract Organisation {
     function getJoinRequests() external view onlyOwner returns (JoinRequest[] memory) {
         // This function returns all join requests for the organisation
 
-        require(checkOwnership(msg.sender), "Not an owner");
         return s_joinRequests;
     }
 
@@ -121,10 +120,6 @@ contract Organisation {
 
         if (status == 1) {
             members.push(request.user);
-            s_userToJoinTime[request.user] = block.timestamp;
-            if (s_userToLeaveTime[request.user] != 0) {
-                s_userToLeaveTime[request.user] = 0;
-            }
             OrganisationFactory(organisationFactoryAddress).addUserToOrganisation(request.user);
         }
     }
@@ -154,9 +149,7 @@ contract Organisation {
                 break;
             }
         }
-        s_leftMembers[s_leftMembersCounter] = msg.sender;
-        s_leftMembersCounter++;
-        s_userToLeaveTime[msg.sender] = block.timestamp;
+        emit UserRemovedFromOrganisation(msg.sender, address(this), block.timestamp, msg.sender);
     }
 
     function removeMember(address member) external onlyOwner {
@@ -177,29 +170,7 @@ contract Organisation {
                 break;
             }
         }
-        s_removedUsertoUser[member] = msg.sender;
-        s_userToLeaveTime[member] = block.timestamp;
-    }
-
-    function getUserWhoRemoved(address user) external view returns (address, uint256) {
-        // This function returns the address of the user who removed the specified user from the organisation
-
-        require(!checkMembership(user), "Still a member!");
-        return (s_removedUsertoUser[user], s_userToLeaveTime[user]);
-    }
-
-    function getUserJoinTime(address user) external view returns (uint256) {
-        // This function returns the join time of the specified user
-
-        require(checkMembership(user), "Not a member!");
-        return s_userToJoinTime[user];
-    }
-
-    function getUserLeaveTime(address user) external view returns (uint256) {
-        // This function returns the leave time of the specified user
-
-        require(!checkMembership(user), "Still a member!");
-        return s_userToLeaveTime[user];
+        emit UserRemovedFromOrganisation(member, address(this), block.timestamp, msg.sender);
     }
 
     function requestVerification(string memory _description, string[] memory _proofHashes, uint256 _treeNftID)
@@ -211,13 +182,13 @@ contract Organisation {
         require(checkMembership(msg.sender), "Not a member!");
         OrganisationVerificationRequest memory request = OrganisationVerificationRequest({
             id: s_verificationCounter,
-            initial_member: msg.sender,
+            initialMember: msg.sender,
             organisationContract: address(this),
             status: 0,
             description: _description,
             timestamp: block.timestamp,
             proofHashes: _proofHashes,
-            treeNFTID: _treeNftID
+            treeNftId: _treeNftID
         });
         if (checkOwnership(msg.sender)) {
             s_verificationYesVoters[s_verificationCounter].push(msg.sender);
@@ -254,7 +225,7 @@ contract Organisation {
 
         OrganisationVerificationRequest storage request = s_verificationIDtoVerification[verificationID];
         require(request.status == 0, "Request already processed");
-        require(request.initial_member != msg.sender, "You cannot vote on your own request");
+        require(request.initialMember != msg.sender, "You cannot vote on your own request");
         if (vote == 1) {
             s_verificationYesVoters[verificationID].push(msg.sender);
         } else {
@@ -266,7 +237,7 @@ contract Organisation {
                 || s_verificationYesVoters[verificationID].length > owners.length / 2
         ) {
             request.status = 1;
-            s_treeNFTContract.verify(request.treeNFTID);
+            treeNFTContract.verify(request.treeNftId);
         } else if (s_verificationNoVoters[verificationID].length == owners.length / 2) {
             request.status = 2;
         }
@@ -274,7 +245,9 @@ contract Organisation {
 
     function makeOwner(address newOwner) external onlyOwner {
         // This function allows an owner to add a new owner to the organisation
-
+        require(newOwner != address(0), "Invalid address");
+        require(checkMembership(newOwner), "Must be a member first");
+        require(!checkOwnership(newOwner), "Already an owner");
         owners.push(newOwner);
     }
 

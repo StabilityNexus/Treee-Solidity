@@ -24,13 +24,13 @@ struct Verification {
 
 struct OrganisationVerificationRequest {
     uint256 id;
-    address initial_member;
+    address initialMember;
     address organisationContract;
     uint256 status;
     string description;
     uint256 timestamp;
     string[] proofHashes;
-    uint256 treeNFTID;
+    uint256 treeNftId;
 }
 
 struct JoinRequest {

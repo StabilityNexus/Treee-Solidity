@@ -39,7 +39,9 @@ contract TreeNft is ERC721, Ownable {
         // This function mints a new NFT for the user
 
         uint256 tokenId = s_tokenCounter;
-        _safeMint(msg.sender, tokenId);
+        s_tokenCounter++;
+        s_userToNFTs[msg.sender].push(tokenId);
+        _mint(msg.sender, tokenId);
         address[] memory ancestors = new address[](1);
         ancestors[0] = msg.sender;
         Verification[] memory emptyVerifications = new Verification[](0);
@@ -59,8 +61,6 @@ contract TreeNft is ERC721, Ownable {
             block.timestamp,
             0
         );
-        s_userToNFTs[msg.sender].push(tokenId);
-        s_tokenCounter++;
     }
 
     function markDead(uint256 tokenId) public {

@@ -225,7 +225,7 @@ contract OrganisationTest is Test {
         vm.stopPrank();
 
         assertEq(request.id, requestId);
-        assertEq(request.initial_member, user2);
+        assertEq(request.initialMember, user2);
         assertEq(request.organisationContract, orgAddress);
         assertEq(request.status, 0);
         assertEq(request.description, "Proof of existence");
