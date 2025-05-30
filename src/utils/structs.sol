@@ -15,11 +15,13 @@ struct OrganisationDetails {
     uint256 timeOfCreation;
 }
 
-struct Verification {
+struct TreeNftVerification {
     address verifier;
     uint256 timestamp;
     string[] proofHashes;
     string description;
+    bool isHidden;
+    uint256 treeNftId;
 }
 
 struct OrganisationVerificationRequest {
@@ -48,6 +50,8 @@ struct User {
     string profilePhotoIpfs;
     string name;
     uint256 dateJoined;
+    uint256 verificationsRevoked;
+    uint256 reportedSpam;
 }
 
 struct Tree {
@@ -62,7 +66,6 @@ struct Tree {
     string geoHash;
     address[] ancestors;
     address organisationAddress;
-    Verification[] verifiers;
     uint256 lastCareTimestamp;
     uint256 careCount;
 }

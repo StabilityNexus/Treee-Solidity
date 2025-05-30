@@ -54,10 +54,10 @@ contract Organisation {
         address _treeNFTContractAddress,
         address _founder
     ) {
-        require(_creator != address(0), "Invalid creator address");
-        require(_factoryAddress != address(0), "Invalid factory address");
-        require(_treeNFTContractAddress != address(0), "Invalid tree NFT address");
-        require(bytes(_name).length > 0, "Name cannot be empty");
+        if (_creator == address(0)) revert InvalidAddressInput();
+        if (_factoryAddress == address(0)) revert InvalidAddressInput();
+        if (_treeNFTContractAddress == address(0)) revert InvalidAddressInput();
+        if (bytes(_name).length == 0) revert InvalidNameInput();
         id = _id;
         name = _name;
         description = _description;
@@ -99,7 +99,7 @@ contract Organisation {
     function getJoinRequest(uint256 requestID) external view onlyOwner returns (JoinRequest memory) {
         // This function returns a specific join request by its ID
 
-        require(requestID < s_requestCounter, "Invalid request ID");
+        if (requestID >= s_requestCounter || requestID < 0) revert InvalidRequestId();
         return s_requestIDtoJoinRequest[requestID];
     }
 
@@ -112,9 +112,9 @@ contract Organisation {
     function processJoinRequest(uint256 requestID, uint256 status) external onlyOwner {
         // This function is called by an owner to process a join request
 
-        require(status == 1 || status == 2, "Invalid status");
+        if (status != 1 && status != 2) revert InvalidStatus();
         JoinRequest storage request = s_requestIDtoJoinRequest[requestID];
-        require(request.status == 0, "Request already processed");
+        if (request.status != 0) revert AlreadyProcessed();
         request.status = status;
         request.reviewer = msg.sender;
 
@@ -127,7 +127,7 @@ contract Organisation {
     function leaveOrganisation() external {
         // This function allows a user to leave the organisation
 
-        require(checkMembership(msg.sender), "Not a member");
+        if (!checkMembership(msg.sender)) revert NotOrganisationMember();
         uint256 ownerCount = owners.length;
         if (ownerCount == 1 && owners[0] == msg.sender) {
             revert NeedAnotherOwner();
@@ -141,7 +141,7 @@ contract Organisation {
                 break;
             }
         }
-        require(found, "User is not a member");
+        if (!found) revert NotOrganisationMember();
         for (uint256 i = 0; i < owners.length; i++) {
             if (owners[i] == msg.sender) {
                 owners[i] = owners[owners.length - 1];
@@ -155,7 +155,7 @@ contract Organisation {
     function removeMember(address member) external onlyOwner {
         // This function allows an owner to remove a member from the organisation
 
-        require(checkMembership(member), "Not a member");
+        if (!checkMembership(msg.sender)) revert NotOrganisationMember();
         for (uint256 i = 0; i < members.length; i++) {
             if (members[i] == member) {
                 members[i] = members[members.length - 1];
@@ -179,7 +179,7 @@ contract Organisation {
     {
         // This function allows a user to request verification of a tree
 
-        require(checkMembership(msg.sender), "Not a member!");
+        if (!checkMembership(msg.sender)) revert NotOrganisationMember();
         OrganisationVerificationRequest memory request = OrganisationVerificationRequest({
             id: s_verificationCounter,
             initialMember: msg.sender,
@@ -206,7 +206,7 @@ contract Organisation {
     {
         // This function returns a specific verification request by its ID
 
-        require(verificationID < s_verificationCounter, "Invalid verification ID");
+        if (verificationID >= s_verificationCounter && verificationID < 0) revert InvalidVerificationId();
         return s_verificationIDtoVerification[verificationID];
     }
 
@@ -224,8 +224,7 @@ contract Organisation {
         // This function allows an owner to vote on a verification request
 
         OrganisationVerificationRequest storage request = s_verificationIDtoVerification[verificationID];
-        require(request.status == 0, "Request already processed");
-        require(request.initialMember != msg.sender, "You cannot vote on your own request");
+        if (request.status != 0) revert AlreadyProcessed();
         if (vote == 1) {
             s_verificationYesVoters[verificationID].push(msg.sender);
         } else {
@@ -237,7 +236,7 @@ contract Organisation {
                 || s_verificationYesVoters[verificationID].length > owners.length / 2
         ) {
             request.status = 1;
-            treeNFTContract.verify(request.treeNftId);
+            treeNFTContract.verify(request.treeNftId, request.proofHashes, request.description);
         } else if (s_verificationNoVoters[verificationID].length == owners.length / 2) {
             request.status = 2;
         }
@@ -245,9 +244,9 @@ contract Organisation {
 
     function makeOwner(address newOwner) external onlyOwner {
         // This function allows an owner to add a new owner to the organisation
-        require(newOwner != address(0), "Invalid address");
-        require(checkMembership(newOwner), "Must be a member first");
-        require(!checkOwnership(newOwner), "Already an owner");
+        if (newOwner == address(0)) revert InvalidAddressInput();
+        if (!checkMembership(newOwner)) revert NotOrganisationMember();
+        if (checkOwnership(newOwner)) revert AlreadyOwner();
         owners.push(newOwner);
     }
 

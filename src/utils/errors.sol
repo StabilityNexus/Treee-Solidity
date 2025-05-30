@@ -5,11 +5,34 @@ error TokenDoesNotExist();
 error TreeAlreadyDead();
 error NotTreeOwner();
 error AlreadyVerified();
+
 error NotOrganisationMember();
 error NotOrganisationOwner();
+error AlreadyOwner();
+error OnlyOwner();
+
 error InvalidApprovalStatusInput();
-error InvalidNameInput();
 error InvalidDescriptionInput();
 error InvalidOrganisationIdInput();
 error NeedAnotherOwner();
-error OnlyOwner();
+
+// Request
+error InvalidRequestId();
+error InvalidStatus();
+error AlreadyProcessed();
+
+//Verification
+error InvalidVerificationId();
+
+error InvalidAddressInput();
+error InvalidNameInput();
+
+// TreeNFT
+
+error PaginationLimitExceeded();
+error InvalidTreeID();
+
+// User 
+
+error UserAlreadyRegistered();
+error UserNotRegistered();
