@@ -17,3 +17,7 @@ docs/
 lib/
 .vscode/
 node_modules/
+
+broadcast
+
+.github
