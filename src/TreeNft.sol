@@ -27,7 +27,6 @@ contract TreeNft is ERC721, Ownable {
 
     mapping(address => User) s_addressToUser;
 
-
     constructor() Ownable(msg.sender) ERC721("TreeNFT", "TREE") {
         s_tokenCounter = 0;
         s_organisationCounter = 0;
@@ -165,15 +164,15 @@ contract TreeNft is ERC721, Ownable {
             s_verifierToTokenIDs[msg.sender].push(_tokenId);
             s_tokenIDtoTreeNftVerfication[s_treeNftVerification] = treeVerification;
             s_treeTokenIdToVerifications[_tokenId].push(s_treeNftVerification);
-            s_treeNftVerification++; 
+            s_treeNftVerification++;
         }
     }
 
     function removeVerification(uint256 _verificationId) public {
         // This function enables the owner of the NFT to remove verifications as he pleases (in case of fraudalent verification spam)
 
-        TreeNftVerification memory treeNftVerification =  s_tokenIDtoTreeNftVerfication[_verificationId];
-        if(msg.sender != ownerOf(treeNftVerification.treeNftId)) revert NotTreeOwner();
+        TreeNftVerification memory treeNftVerification = s_tokenIDtoTreeNftVerfication[_verificationId];
+        if (msg.sender != ownerOf(treeNftVerification.treeNftId)) revert NotTreeOwner();
         treeNftVerification.isHidden = true;
         User memory user = s_addressToUser[treeNftVerification.verifier];
         user.verificationsRevoked++;
@@ -207,24 +206,23 @@ contract TreeNft is ERC721, Ownable {
         return verifiedTrees;
     }
 
-    // User profile handling 
+    // User profile handling
 
     function registerUserProfile(string memory _name, string memory _profilePhotoHash) public {
-        // This function registers a user 
+        // This function registers a user
 
-        if(s_addressToUser[msg.sender].userAddress !=  address(0)) revert UserAlreadyRegistered();
-        User memory user = User(msg.sender,_profilePhotoHash,_name,block.timestamp,0,0);
+        if (s_addressToUser[msg.sender].userAddress != address(0)) revert UserAlreadyRegistered();
+        User memory user = User(msg.sender, _profilePhotoHash, _name, block.timestamp, 0, 0);
         s_addressToUser[msg.sender] = user;
         s_userCounter++;
     }
 
     function updateUserDetails(string memory _name, string memory _profilePhotoHash) public {
-        // This function enables a user to chnage his user details 
+        // This function enables a user to chnage his user details
 
-        if(s_addressToUser[msg.sender].userAddress ==  address(0)) revert UserNotRegistered();
+        if (s_addressToUser[msg.sender].userAddress == address(0)) revert UserNotRegistered();
         User memory user = s_addressToUser[msg.sender];
         user.name = _name;
         user.profilePhotoIpfs = _profilePhotoHash;
     }
-
 }

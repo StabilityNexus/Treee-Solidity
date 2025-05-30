@@ -32,7 +32,7 @@ error InvalidNameInput();
 error PaginationLimitExceeded();
 error InvalidTreeID();
 
-// User 
+// User
 
 error UserAlreadyRegistered();
 error UserNotRegistered();
