@@ -178,6 +178,32 @@ contract TreeNft is ERC721, Ownable {
         user.verificationsRevoked++;
     }
 
+    function getVerifiedTreesByUser(address verifier) public view returns (Tree[] memory) {
+        // This function retrieves all trees verified by a specific verifier
+
+        uint256[] memory verifiedTokens = s_verifierToTokenIDs[verifier];
+        Tree[] memory verifiedTrees = new Tree[](verifiedTokens.length);
+        for (uint256 i = 0; i < verifiedTokens.length; i++) {
+            uint256 tokenId = verifiedTokens[i];
+            verifiedTrees[i] = s_tokenIDtoTree[tokenId];
+        }
+        return verifiedTrees;
+    }
+
+    function getTreeNftVerifiers(uint256 _tokenId) public view returns (TreeNftVerification[] memory) {
+        // This function returns the verifiers of a particular TreeNFT
+
+        uint256[] storage verificationIds = s_treeTokenIdToVerifications[_tokenId];
+        TreeNftVerification[] memory treeNftVerifications = new TreeNftVerification[](verificationIds.length);
+        for (uint256 i = 0; i < verificationIds.length; i++) {
+            uint256 verificationId = verificationIds[i];
+            TreeNftVerification memory verification = s_tokenIDtoTreeNftVerfication[verificationId];
+            if (verification.isHidden) continue;
+            treeNftVerifications[i] = verification;
+        }
+        return treeNftVerifications;
+    }
+
     function markDead(uint256 tokenId) public {
         // This function marks a tree as dead
 
@@ -193,20 +219,6 @@ contract TreeNft is ERC721, Ownable {
 
         return s_tokenIDtoUserVerification[tokenId][verifier];
     }
-
-    function getVerifiedTreesByUser(address verifier) public view returns (Tree[] memory) {
-        // This function retrieves all trees verified by a specific verifier
-
-        uint256[] memory verifiedTokens = s_verifierToTokenIDs[verifier];
-        Tree[] memory verifiedTrees = new Tree[](verifiedTokens.length);
-        for (uint256 i = 0; i < verifiedTokens.length; i++) {
-            uint256 tokenId = verifiedTokens[i];
-            verifiedTrees[i] = s_tokenIDtoTree[tokenId];
-        }
-        return verifiedTrees;
-    }
-
-    // User profile handling
 
     function registerUserProfile(string memory _name, string memory _profilePhotoHash) public {
         // This function registers a user
