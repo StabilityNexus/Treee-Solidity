@@ -17,3 +17,6 @@ docs/
 lib/
 .vscode/
 node_modules/
+./.DS_Store
+
+./.github/workflows/test.yml

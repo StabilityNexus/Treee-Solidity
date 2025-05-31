@@ -19,7 +19,6 @@ contract Organisation {
 
     TreeNft public treeNFTContract;
 
-    uint256 private s_requestCounter;
     uint256 private s_verificationCounter;
     uint256 private s_leftMembersCounter;
 
@@ -63,7 +62,6 @@ contract Organisation {
         founder = _founder;
         owners.push(_creator);
         members.push(_creator);
-        s_requestCounter = 0;
         s_leftMembersCounter = 0;
         s_verificationCounter = 0;
         timeOfCreation = block.timestamp;
