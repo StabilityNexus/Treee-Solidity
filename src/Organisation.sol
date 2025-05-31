@@ -17,14 +17,11 @@ contract Organisation {
     uint256 public timeOfCreation;
     address public founder;
 
-    JoinRequest[] private s_joinRequests;
     TreeNft public treeNFTContract;
 
     uint256 private s_requestCounter;
     uint256 private s_verificationCounter;
     uint256 private s_leftMembersCounter;
-
-    mapping(uint256 => JoinRequest) private s_requestIDtoJoinRequest;
 
     mapping(uint256 => OrganisationVerificationRequest) private s_verificationIDtoVerification;
     mapping(address => OrganisationVerificationRequest[]) private s_userAddressToVerifications;
@@ -73,55 +70,13 @@ contract Organisation {
         treeNFTContract = TreeNft(_treeNFTContractAddress);
     }
 
-    function requestToJoin(string memory _description) external returns (uint256) {
-        // This function is called by a user to request a user to join the organisation
-
-        if (checkMembership(msg.sender)) {
-            revert AlreadyVerified();
-        }
-
-        JoinRequest memory request = JoinRequest({
-            id: s_requestCounter,
-            user: msg.sender,
-            status: 0,
-            description: _description,
-            timestamp: block.timestamp,
-            reviewer: address(0),
-            organisationContract: address(this)
-        });
-
-        s_joinRequests.push(request);
-        s_requestIDtoJoinRequest[s_requestCounter] = request;
-        s_requestCounter++;
-        return request.id;
-    }
-
-    function getJoinRequest(uint256 requestID) external view onlyOwner returns (JoinRequest memory) {
-        // This function returns a specific join request by its ID
-
-        require(requestID < s_requestCounter, "Invalid request ID");
-        return s_requestIDtoJoinRequest[requestID];
-    }
-
-    function getJoinRequests() external view onlyOwner returns (JoinRequest[] memory) {
-        // This function returns all join requests for the organisation
-
-        return s_joinRequests;
-    }
-
-    function processJoinRequest(uint256 requestID, uint256 status) external onlyOwner {
+    function addMember(address user) external onlyOwner {
         // This function is called by an owner to process a join request
 
-        require(status == 1 || status == 2, "Invalid status");
-        JoinRequest storage request = s_requestIDtoJoinRequest[requestID];
-        require(request.status == 0, "Request already processed");
-        request.status = status;
-        request.reviewer = msg.sender;
-
-        if (status == 1) {
-            members.push(request.user);
-            OrganisationFactory(organisationFactoryAddress).addUserToOrganisation(request.user);
-        }
+        require(user != address(0), "Invalid address");
+        require(!checkMembership(user), "Already a member");
+        members.push(user);
+        emit UserAddedToOrganisation(user, address(this), block.timestamp, msg.sender);
     }
 
     function leaveOrganisation() external {
