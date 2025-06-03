@@ -20,4 +20,6 @@ node_modules/
 
 broadcast
 
-.github
+./.DS_Store
+
+./.github/workflows/test.yml

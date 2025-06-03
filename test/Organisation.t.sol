@@ -41,79 +41,6 @@ contract OrganisationTest is Test {
         vm.stopPrank();
     }
 
-    function test_requestToJoinOrganisation() public {
-        // This test checks if the requestToJoinOrganisation function works correctly by creating an organisation, requesting to join it, and verifying the request details.
-
-        vm.prank(user1);
-        (uint256 orgId, address orgAddress) = factory.createOrganisation(NAME, DESCRIPTION, PHOTO_IPFS_HASH);
-        assertEq(orgId, 0);
-        vm.stopPrank();
-
-        vm.prank(user2);
-        uint256 requestId = Organisation(orgAddress).requestToJoin(JOIN_REQUEST_DESCRIPTION);
-        vm.stopPrank();
-
-        vm.prank(user1);
-        JoinRequest memory request = Organisation(orgAddress).getJoinRequest(requestId);
-        vm.stopPrank();
-        assertEq(request.id, requestId);
-        assertEq(request.user, user2);
-        assertEq(request.organisationContract, orgAddress);
-        assertEq(request.status, 0);
-        assertEq(request.description, "I want to join this organisation");
-    }
-
-    function test_approveJoinRequest() public {
-        // This test checks if the approveJoinRequest function works correctly by creating an organisation, requesting to join it, approving the request, and verifying the member details.
-
-        vm.prank(user1);
-        (uint256 orgId, address orgAddress) = factory.createOrganisation(NAME, DESCRIPTION, PHOTO_IPFS_HASH);
-        assertEq(orgId, 0);
-        vm.stopPrank();
-
-        vm.prank(user2);
-        uint256 requestId = Organisation(orgAddress).requestToJoin(JOIN_REQUEST_DESCRIPTION);
-        vm.stopPrank();
-
-        vm.prank(user1);
-        Organisation(orgAddress).processJoinRequest(requestId, 1);
-        vm.stopPrank();
-
-        vm.prank(user1);
-        assertEq(Organisation(orgAddress).getMemberCount(), 2);
-        vm.stopPrank();
-
-        vm.prank(user2);
-        address[] memory members = Organisation(orgAddress).getMembers();
-        vm.stopPrank();
-
-        assertEq(members[0], user1);
-        assertEq(members[1], user2);
-    }
-
-    function test_denyJoinRequest() public {
-        // This test checks if the denyJoinRequest function works correctly by creating an organisation, requesting to join it, denying the request, and verifying the request status.
-
-        vm.prank(user1);
-        (uint256 orgId, address orgAddress) = factory.createOrganisation(NAME, DESCRIPTION, PHOTO_IPFS_HASH);
-        assertEq(orgId, 0);
-        vm.stopPrank();
-
-        vm.prank(user2);
-        uint256 requestId = Organisation(orgAddress).requestToJoin(JOIN_REQUEST_DESCRIPTION);
-        vm.stopPrank();
-
-        vm.prank(user1);
-        Organisation(orgAddress).processJoinRequest(requestId, 2);
-        vm.stopPrank();
-
-        vm.prank(user1);
-        JoinRequest memory request = Organisation(orgAddress).getJoinRequest(requestId);
-        vm.stopPrank();
-
-        assertEq(request.status, 2); // Denied
-    }
-
     function test_onlyOwnerModifier() public {
         // This test checks if the onlyOwner modifier works correctly by trying to call a function that requires ownership from a non-owner address.
 
@@ -122,12 +49,8 @@ contract OrganisationTest is Test {
         vm.stopPrank();
 
         vm.prank(user2);
-        uint256 requestId = Organisation(orgAddress).requestToJoin(JOIN_REQUEST_DESCRIPTION);
-        vm.stopPrank();
-
-        vm.prank(user2);
         vm.expectRevert(OnlyOwner.selector);
-        Organisation(orgAddress).processJoinRequest(requestId, 2);
+        Organisation(orgAddress).addMember(user2);
         vm.stopPrank();
     }
 
@@ -139,12 +62,8 @@ contract OrganisationTest is Test {
         assertEq(orgId, 0);
         vm.stopPrank();
 
-        vm.prank(user2);
-        uint256 requestId = Organisation(orgAddress).requestToJoin(JOIN_REQUEST_DESCRIPTION);
-        vm.stopPrank();
-
         vm.prank(user1);
-        Organisation(orgAddress).processJoinRequest(requestId, 1);
+        Organisation(orgAddress).addMember(user2);
         vm.stopPrank();
 
         vm.prank(user2);
@@ -162,12 +81,8 @@ contract OrganisationTest is Test {
         (, address orgAddress) = factory.createOrganisation(NAME, DESCRIPTION, PHOTO_IPFS_HASH);
         vm.stopPrank();
 
-        vm.prank(user2);
-        uint256 requestId = Organisation(orgAddress).requestToJoin(JOIN_REQUEST_DESCRIPTION);
-        vm.stopPrank();
-
         vm.prank(user1);
-        Organisation(orgAddress).processJoinRequest(requestId, 1);
+        Organisation(orgAddress).addMember(user2);
         vm.stopPrank();
 
         vm.prank(user1);
@@ -181,12 +96,8 @@ contract OrganisationTest is Test {
         (, address orgAddress) = factory.createOrganisation(NAME, DESCRIPTION, PHOTO_IPFS_HASH);
         vm.stopPrank();
 
-        vm.prank(user2);
-        uint256 requestId = Organisation(orgAddress).requestToJoin(JOIN_REQUEST_DESCRIPTION);
-        vm.stopPrank();
-
         vm.prank(user1);
-        Organisation(orgAddress).processJoinRequest(requestId, 1);
+        Organisation(orgAddress).addMember(user2);
         vm.stopPrank();
 
         vm.prank(user1);
@@ -206,12 +117,8 @@ contract OrganisationTest is Test {
         assertEq(orgId, 0);
         vm.stopPrank();
 
-        vm.prank(user2);
-        uint256 requestId1 = Organisation(orgAddress).requestToJoin(JOIN_REQUEST_DESCRIPTION);
-        vm.stopPrank();
-
         vm.prank(user1);
-        Organisation(orgAddress).processJoinRequest(requestId1, 1);
+        Organisation(orgAddress).addMember(user2);
         vm.stopPrank();
 
         vm.prank(user2);
@@ -246,12 +153,8 @@ contract OrganisationTest is Test {
         treeNft.mintNft(LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_IPFS_HASH, GEOHASH, imageHashes, orgAddress);
         vm.stopPrank();
 
-        vm.prank(user2);
-        uint256 requestId1 = Organisation(orgAddress).requestToJoin(JOIN_REQUEST_DESCRIPTION);
-        vm.stopPrank();
-
         vm.prank(user1);
-        Organisation(orgAddress).processJoinRequest(requestId1, 1);
+        Organisation(orgAddress).addMember(user2);
         vm.stopPrank();
 
         vm.prank(user2);

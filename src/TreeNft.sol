@@ -75,10 +75,11 @@ contract TreeNft is ERC721, Ownable {
     }
 
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
+
+        
         if (!_exists(tokenId)) revert InvalidTreeID();
         Tree memory tree = s_tokenIDtoTree[tokenId];
 
-        // Simple JSON metadata with only essential fields using Strings.toString()
         string memory json = string(
             abi.encodePacked(
                 '{"name":"TreeNFT #',
