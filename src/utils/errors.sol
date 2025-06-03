@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
+/// Organisaiton Factory and Organisation
 error TokenDoesNotExist();
 error TreeAlreadyDead();
 error NotTreeOwner();
@@ -16,23 +17,21 @@ error InvalidDescriptionInput();
 error InvalidOrganisationIdInput();
 error NeedAnotherOwner();
 
-// Request
+/// Request
 error InvalidRequestId();
 error InvalidStatus();
 error AlreadyProcessed();
 
-//Verification
+/// Verification
 error InvalidVerificationId();
-
 error InvalidAddressInput();
 error InvalidNameInput();
 
-// TreeNFT
-
+/// TreeNFT
 error PaginationLimitExceeded();
 error InvalidTreeID();
+error MinimumMarkDeadTimeNotReached();
 
-// User
-
+/// User
 error UserAlreadyRegistered();
 error UserNotRegistered();

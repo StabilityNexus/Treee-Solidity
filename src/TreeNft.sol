@@ -9,12 +9,19 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import "./utils/structs.sol";
 import "./utils/errors.sol";
 
+import "./token-contracts/CareToken.sol";
+import "./token-contracts/LegacyToken.sol";
+import "./token-contracts/PlanterToken.sol";
+import "./token-contracts/VerifierToken.sol";
+
 contract TreeNft is ERC721, Ownable {
     uint256 private s_tokenCounter;
     uint256 private s_organisationCounter;
     uint256 private s_deathCounter;
     uint256 private s_treeNftVerification;
     uint256 private s_userCounter;
+    
+    uint public minimumTimeToMarkTreeDead = 365 days;
 
     mapping(uint256 => Tree) private s_tokenIDtoTree;
     mapping(uint256 => address[]) private s_tokenIDtoVerifiers;
@@ -35,9 +42,7 @@ contract TreeNft is ERC721, Ownable {
         s_userCounter = 0;
     }
 
-    function _exists(uint256 tokenId) internal view returns (bool) {
-        return tokenId < s_tokenCounter && tokenId >= 0;
-    }
+    event VerificationRemoved(uint256 indexed verificationId, uint256 indexed treeNftId, address indexed verifier);
 
     function mintNft(
         uint256 latitude,
@@ -46,7 +51,7 @@ contract TreeNft is ERC721, Ownable {
         string memory imageUri,
         string memory qrIpfsHash,
         string memory geoHash,
-        string[] memory initialPhotos, // Allow passing initial photos during minting
+        string[] memory initialPhotos,
         address organisationAddress
     ) public {
         // This function mints a new NFT for the user
@@ -75,8 +80,6 @@ contract TreeNft is ERC721, Ownable {
     }
 
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
-
-        
         if (!_exists(tokenId)) revert InvalidTreeID();
         Tree memory tree = s_tokenIDtoTree[tokenId];
 
@@ -146,6 +149,33 @@ contract TreeNft is ERC721, Ownable {
         return userTrees;
     }
 
+    function getNFTsByUserPaginated(address user, uint256 offset, uint256 limit)
+        public
+        view
+        returns (Tree[] memory trees, uint256 totalCount)
+    {
+        // Get the total number of NFTs for this user
+
+        uint256[] memory userNFTs = s_userToNFTs[user];
+        totalCount = userNFTs.length;
+
+        if (offset >= totalCount) {
+            return (new Tree[](0), totalCount);
+        }
+        uint256 end = offset + limit;
+        if (end > totalCount) {
+            end = totalCount;
+        }
+        uint256 resultLength = end - offset;
+        trees = new Tree[](resultLength);
+        for (uint256 i = 0; i < resultLength; i++) {
+            uint256 tokenId = userNFTs[offset + i];
+            trees[i] = s_tokenIDtoTree[tokenId];
+        }
+
+        return (trees, totalCount);
+    }
+
     function getTreeDetailsbyID(uint256 tokenId) public view returns (Tree memory) {
         // This function retrieves details of a specific tree NFT by its ID
 
@@ -177,6 +207,7 @@ contract TreeNft is ERC721, Ownable {
         treeNftVerification.isHidden = true;
         User memory user = s_addressToUser[treeNftVerification.verifier];
         user.verificationsRevoked++;
+        emit VerificationRemoved(_verificationId, treeNftVerification.treeNftId, treeNftVerification.verifier);
     }
 
     function getVerifiedTreesByUser(address verifier) public view returns (Tree[] memory) {
@@ -189,6 +220,32 @@ contract TreeNft is ERC721, Ownable {
             verifiedTrees[i] = s_tokenIDtoTree[tokenId];
         }
         return verifiedTrees;
+    }
+
+    function getVerifiedTreesByUserPaginated(address verifier, uint256 offset, uint256 limit)
+        public
+        view
+        returns (Tree[] memory trees, uint256 totalCount)
+    {
+        // Get the total number of trees verified by this verifier
+
+        uint256[] memory verifiedTokens = s_verifierToTokenIDs[verifier];
+        totalCount = verifiedTokens.length;
+        if (offset >= totalCount) {
+            return (new Tree[](0), totalCount);
+        }
+        uint256 end = offset + limit;
+        if (end > totalCount) {
+            end = totalCount;
+        }
+        uint256 resultLength = end - offset;
+        trees = new Tree[](resultLength);
+        for (uint256 i = 0; i < resultLength; i++) {
+            uint256 tokenId = verifiedTokens[offset + i];
+            trees[i] = s_tokenIDtoTree[tokenId];
+        }
+
+        return (trees, totalCount);
     }
 
     function getTreeNftVerifiers(uint256 _tokenId) public view returns (TreeNftVerification[] memory) {
@@ -205,20 +262,51 @@ contract TreeNft is ERC721, Ownable {
         return treeNftVerifications;
     }
 
+    function getTreeNftVerifiersPaginated(uint256 _tokenId, uint256 offset, uint256 limit)
+        public
+        view
+        returns (TreeNftVerification[] memory verifications, uint256 totalCount, uint256 visibleCount)
+    {
+        uint256[] storage verificationIds = s_treeTokenIdToVerifications[_tokenId];
+        TreeNftVerification[] memory allVisibleVerifications = new TreeNftVerification[](verificationIds.length);
+        uint256 visibleIndex = 0;
+        for (uint256 i = 0; i < verificationIds.length; i++) {
+            uint256 verificationId = verificationIds[i];
+            TreeNftVerification memory verification = s_tokenIDtoTreeNftVerfication[verificationId];
+
+            if (!verification.isHidden) {
+                allVisibleVerifications[visibleIndex] = verification;
+                visibleIndex++;
+            }
+        }
+        totalCount = verificationIds.length;
+        visibleCount = visibleIndex;
+        if (offset >= visibleCount) {
+            return (new TreeNftVerification[](0), totalCount, visibleCount);
+        }
+        uint256 end = offset + limit;
+        if (end > visibleCount) {
+            end = visibleCount;
+        }
+        uint256 resultLength = end - offset;
+        verifications = new TreeNftVerification[](resultLength);
+
+        for (uint256 i = 0; i < resultLength; i++) {
+            verifications[i] = allVisibleVerifications[offset + i];
+        }
+        return (verifications, totalCount, visibleCount);
+    }
+
     function markDead(uint256 tokenId) public {
         // This function marks a tree as dead
 
         if (!_exists(tokenId)) revert InvalidTreeID();
-        if (s_tokenIDtoTree[tokenId].death != type(uint256).max) revert TreeAlreadyDead();
+        if(s_tokenIDtoTree[tokenId].death != type(uint256).max) revert TreeAlreadyDead();
         if (ownerOf(tokenId) != msg.sender) revert NotTreeOwner();
+        if(s_tokenIDtoTree[tokenId].planting + minimumTimeToMarkTreeDead >= block.timestamp) revert MinimumMarkDeadTimeNotReached();
+
         s_tokenIDtoTree[tokenId].death = block.timestamp;
         s_deathCounter++;
-    }
-
-    function _isVerified(uint256 tokenId, address verifier) public view returns (bool) {
-        // This function checks if a verifier has verified a tree
-
-        return s_tokenIDtoUserVerification[tokenId][verifier];
     }
 
     function registerUserProfile(string memory _name, string memory _profilePhotoHash) public {
@@ -231,11 +319,20 @@ contract TreeNft is ERC721, Ownable {
     }
 
     function updateUserDetails(string memory _name, string memory _profilePhotoHash) public {
-        // This function enables a user to chnage his user details
+        // This function enables a user to change his user details
 
         if (s_addressToUser[msg.sender].userAddress == address(0)) revert UserNotRegistered();
-        User memory user = s_addressToUser[msg.sender];
-        user.name = _name;
-        user.profilePhotoIpfs = _profilePhotoHash;
+        s_addressToUser[msg.sender].name = _name;
+        s_addressToUser[msg.sender].profilePhotoIpfs = _profilePhotoHash;
+    }
+
+    function _isVerified(uint256 tokenId, address verifier) public view returns (bool) {
+        // This function checks if a verifier has verified a tree
+
+        return s_tokenIDtoUserVerification[tokenId][verifier];
+    }
+
+    function _exists(uint256 tokenId) internal view returns (bool) {
+        return tokenId < s_tokenCounter && tokenId >= 0;
     }
 }

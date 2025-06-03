@@ -35,16 +35,6 @@ struct OrganisationVerificationRequest {
     uint256 treeNftId;
 }
 
-struct JoinRequest {
-    uint256 id;
-    address user;
-    address organisationContract;
-    uint256 status; // 0 = pending, 1 = approved, 2 = denied
-    string description;
-    uint256 timestamp;
-    address reviewer;
-}
-
 struct User {
     address userAddress;
     string profilePhotoIpfs;
