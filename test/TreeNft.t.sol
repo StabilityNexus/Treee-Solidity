@@ -35,7 +35,7 @@ contract TreeNftTest is Test {
         initialPhotos[0] = "photo1.jpg";
         initialPhotos[1] = "photo2.jpg";
 
-        treeNft.mintNft(LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_IPFS_HASH, GEO_HASH, initialPhotos, organisation);
+        treeNft.mintNft(LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_IPFS_HASH, GEO_HASH, initialPhotos);
 
         assertEq(treeNft.ownerOf(0), user1);
         assertEq(treeNft.balanceOf(user1), 1);
@@ -49,7 +49,6 @@ contract TreeNftTest is Test {
         assertEq(tree.geoHash, GEO_HASH);
         assertEq(tree.death, type(uint256).max);
         assertEq(tree.ancestors[0], user1);
-        assertEq(tree.organisationAddress, organisation);
         assertEq(tree.photos.length, 2);
         assertEq(tree.photos[0], "photo1.jpg");
         assertEq(tree.photos[1], "photo2.jpg");
@@ -61,7 +60,7 @@ contract TreeNftTest is Test {
         string[] memory initialPhotos = new string[](0);
 
         // Mint first NFT
-        treeNft.mintNft(LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_IPFS_HASH, GEO_HASH, initialPhotos, organisation);
+        treeNft.mintNft(LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_IPFS_HASH, GEO_HASH, initialPhotos);
 
         // Mint second NFT
         treeNft.mintNft(
@@ -71,8 +70,7 @@ contract TreeNftTest is Test {
             "ipfs://QmPineImage",
             "QmPineQR",
             "u4pruydqqvk",
-            initialPhotos,
-            organisation
+            initialPhotos
         );
 
         vm.stopPrank();
@@ -90,7 +88,7 @@ contract TreeNftTest is Test {
         vm.prank(user1);
         string[] memory initialPhotos = new string[](0);
 
-        treeNft.mintNft(LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_IPFS_HASH, GEO_HASH, initialPhotos, organisation);
+        treeNft.mintNft(LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_IPFS_HASH, GEO_HASH, initialPhotos);
 
         string memory uri = treeNft.tokenURI(0);
         assertTrue(bytes(uri).length > 0);
@@ -109,10 +107,8 @@ contract TreeNftTest is Test {
         vm.startPrank(user1);
         string[] memory initialPhotos = new string[](0);
 
-        treeNft.mintNft(LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_IPFS_HASH, GEO_HASH, initialPhotos, organisation);
-        treeNft.mintNft(
-            LATITUDE + 1, LONGITUDE + 1, "Pine", IMAGE_URI, QR_IPFS_HASH, GEO_HASH, initialPhotos, organisation
-        );
+        treeNft.mintNft(LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_IPFS_HASH, GEO_HASH, initialPhotos);
+        treeNft.mintNft(LATITUDE + 1, LONGITUDE + 1, "Pine", IMAGE_URI, QR_IPFS_HASH, GEO_HASH, initialPhotos);
         vm.stopPrank();
 
         Tree[] memory allTrees = treeNft.getAllNFTs();
@@ -134,8 +130,7 @@ contract TreeNftTest is Test {
                 IMAGE_URI,
                 QR_IPFS_HASH,
                 GEO_HASH,
-                initialPhotos,
-                organisation
+                initialPhotos
             );
         }
         vm.stopPrank();
@@ -172,8 +167,7 @@ contract TreeNftTest is Test {
                 IMAGE_URI,
                 QR_IPFS_HASH,
                 GEO_HASH,
-                initialPhotos,
-                organisation
+                initialPhotos
             );
         }
         vm.stopPrank();
@@ -200,7 +194,7 @@ contract TreeNftTest is Test {
     function test_Verify() public {
         vm.prank(user1);
         string[] memory initialPhotos = new string[](0);
-        treeNft.mintNft(LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_IPFS_HASH, GEO_HASH, initialPhotos, organisation);
+        treeNft.mintNft(LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_IPFS_HASH, GEO_HASH, initialPhotos);
 
         vm.prank(verifier1);
         string[] memory proofHashes = new string[](2);
@@ -232,7 +226,7 @@ contract TreeNftTest is Test {
     function test_VerifyTwiceSameVerifier() public {
         vm.prank(user1);
         string[] memory initialPhotos = new string[](0);
-        treeNft.mintNft(LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_IPFS_HASH, GEO_HASH, initialPhotos, organisation);
+        treeNft.mintNft(LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_IPFS_HASH, GEO_HASH, initialPhotos);
 
         vm.startPrank(verifier1);
         string[] memory proofHashes = new string[](1);
@@ -250,7 +244,7 @@ contract TreeNftTest is Test {
     function test_MultipleVerifiers() public {
         vm.prank(user1);
         string[] memory initialPhotos = new string[](0);
-        treeNft.mintNft(LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_IPFS_HASH, GEO_HASH, initialPhotos, organisation);
+        treeNft.mintNft(LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_IPFS_HASH, GEO_HASH, initialPhotos);
         vm.prank(verifier1);
         string[] memory proofHashes1 = new string[](1);
         proofHashes1[0] = "proof1";
@@ -271,7 +265,7 @@ contract TreeNftTest is Test {
     function test_RemoveVerification() public {
         vm.prank(user1);
         string[] memory initialPhotos = new string[](0);
-        treeNft.mintNft(LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_IPFS_HASH, GEO_HASH, initialPhotos, organisation);
+        treeNft.mintNft(LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_IPFS_HASH, GEO_HASH, initialPhotos);
 
         vm.prank(verifier1);
         string[] memory proofHashes = new string[](1);
@@ -290,7 +284,7 @@ contract TreeNftTest is Test {
     function test_RemoveVerificationNotOwner() public {
         vm.prank(user1);
         string[] memory initialPhotos = new string[](0);
-        treeNft.mintNft(LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_IPFS_HASH, GEO_HASH, initialPhotos, organisation);
+        treeNft.mintNft(LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_IPFS_HASH, GEO_HASH, initialPhotos);
 
         vm.prank(verifier1);
         string[] memory proofHashes = new string[](1);
@@ -305,10 +299,8 @@ contract TreeNftTest is Test {
     function test_GetVerifiedTreesByUser() public {
         vm.startPrank(user1);
         string[] memory initialPhotos = new string[](0);
-        treeNft.mintNft(LATITUDE, LONGITUDE, "Tree1", IMAGE_URI, QR_IPFS_HASH, GEO_HASH, initialPhotos, organisation);
-        treeNft.mintNft(
-            LATITUDE + 1, LONGITUDE + 1, "Tree2", IMAGE_URI, QR_IPFS_HASH, GEO_HASH, initialPhotos, organisation
-        );
+        treeNft.mintNft(LATITUDE, LONGITUDE, "Tree1", IMAGE_URI, QR_IPFS_HASH, GEO_HASH, initialPhotos);
+        treeNft.mintNft(LATITUDE + 1, LONGITUDE + 1, "Tree2", IMAGE_URI, QR_IPFS_HASH, GEO_HASH, initialPhotos);
         vm.stopPrank();
 
         vm.startPrank(verifier1);
@@ -335,8 +327,7 @@ contract TreeNftTest is Test {
                 IMAGE_URI,
                 QR_IPFS_HASH,
                 GEO_HASH,
-                initialPhotos,
-                organisation
+                initialPhotos
             );
         }
         vm.stopPrank();
@@ -360,7 +351,7 @@ contract TreeNftTest is Test {
     function test_GetTreeNftVerifiersPaginated() public {
         vm.prank(user1);
         string[] memory initialPhotos = new string[](0);
-        treeNft.mintNft(LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_IPFS_HASH, GEO_HASH, initialPhotos, organisation);
+        treeNft.mintNft(LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_IPFS_HASH, GEO_HASH, initialPhotos);
 
         string[] memory proofHashes = new string[](1);
         proofHashes[0] = "proof";
@@ -391,7 +382,7 @@ contract TreeNftTest is Test {
     function test_MarkDead() public {
         vm.prank(user1);
         string[] memory initialPhotos = new string[](0);
-        treeNft.mintNft(LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_IPFS_HASH, GEO_HASH, initialPhotos, organisation);
+        treeNft.mintNft(LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_IPFS_HASH, GEO_HASH, initialPhotos);
         vm.warp(block.timestamp + 366 days);
         vm.prank(user1);
         treeNft.markDead(0);
@@ -404,7 +395,7 @@ contract TreeNftTest is Test {
     function testMarkDeadNotOwner() public {
         vm.prank(user1);
         string[] memory initialPhotos = new string[](0);
-        treeNft.mintNft(LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_IPFS_HASH, GEO_HASH, initialPhotos, organisation);
+        treeNft.mintNft(LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_IPFS_HASH, GEO_HASH, initialPhotos);
 
         vm.prank(user2);
         vm.expectRevert(NotTreeOwner.selector);
@@ -420,7 +411,7 @@ contract TreeNftTest is Test {
     function testMarkDeadAlreadyDead() public {
         vm.startPrank(user1);
         string[] memory initialPhotos = new string[](0);
-        treeNft.mintNft(LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_IPFS_HASH, GEO_HASH, initialPhotos, organisation);
+        treeNft.mintNft(LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_IPFS_HASH, GEO_HASH, initialPhotos);
         vm.warp(block.timestamp + 366 days);
         treeNft.markDead(0);
 
@@ -476,7 +467,7 @@ contract TreeNftTest is Test {
         vm.prank(user1);
         string[] memory initialPhotos = new string[](1);
         initialPhotos[0] = "initial_photo.jpg";
-        treeNft.mintNft(LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_IPFS_HASH, GEO_HASH, initialPhotos, organisation);
+        treeNft.mintNft(LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_IPFS_HASH, GEO_HASH, initialPhotos);
 
         vm.prank(verifier1);
         string[] memory proofHashes = new string[](1);
@@ -493,7 +484,7 @@ contract TreeNftTest is Test {
         assertEq(verifications[0].verifier, verifier1);
 
         vm.prank(user1);
-        vm.warp(block.timestamp + 366 days);    
+        vm.warp(block.timestamp + 366 days);
         treeNft.markDead(0);
 
         Tree memory deadTree = treeNft.getTreeDetailsbyID(0);
@@ -504,7 +495,7 @@ contract TreeNftTest is Test {
         uint256 gasBefore = gasleft();
         vm.prank(user1);
         string[] memory initialPhotos = new string[](0);
-        treeNft.mintNft(LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_IPFS_HASH, GEO_HASH, initialPhotos, organisation);
+        treeNft.mintNft(LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_IPFS_HASH, GEO_HASH, initialPhotos);
         uint256 gasUsed = gasBefore - gasleft();
         assertTrue(gasUsed < 500000, "Minting uses too much gas");
     }

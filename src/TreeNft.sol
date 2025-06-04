@@ -1,13 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
+import {ERC721} from "../lib/openzeppelin-contracts/contracts/token/ERC721/ERC721.sol";
+import {Base64} from "../lib/openzeppelin-contracts/contracts/utils/Base64.sol";
+import {Ownable} from "../lib/openzeppelin-contracts/contracts/access/Ownable.sol";
+import {Strings} from "../lib/openzeppelin-contracts/contracts/utils/Strings.sol";
 
 import "./utils/structs.sol";
 import "./utils/errors.sol";
+
+import "./Organisation.sol";
+import "./OrganisationFactory.sol";
 
 import "./token-contracts/CareToken.sol";
 import "./token-contracts/LegacyToken.sol";
@@ -20,8 +23,12 @@ contract TreeNft is ERC721, Ownable {
     uint256 private s_deathCounter;
     uint256 private s_treeNftVerification;
     uint256 private s_userCounter;
-    
-    uint public minimumTimeToMarkTreeDead = 365 days;
+
+    uint256 public minimumTimeToMarkTreeDead = 365 days;
+    CareToken public careTokenContract;
+    PlanterToken public planterTokenContract;
+    VerifierToken public verifierTokenContract;
+    LegacyToken public legacyToken;
 
     mapping(uint256 => Tree) private s_tokenIDtoTree;
     mapping(uint256 => address[]) private s_tokenIDtoVerifiers;
@@ -40,6 +47,11 @@ contract TreeNft is ERC721, Ownable {
         s_deathCounter = 0;
         s_treeNftVerification = 0;
         s_userCounter = 0;
+
+        careTokenContract = new CareToken();
+        planterTokenContract = new PlanterToken();
+        verifierTokenContract = new VerifierToken();
+        legacyToken = new LegacyToken();
     }
 
     event VerificationRemoved(uint256 indexed verificationId, uint256 indexed treeNftId, address indexed verifier);
@@ -51,14 +63,12 @@ contract TreeNft is ERC721, Ownable {
         string memory imageUri,
         string memory qrIpfsHash,
         string memory geoHash,
-        string[] memory initialPhotos,
-        address organisationAddress
+        string[] memory initialPhotos
     ) public {
         // This function mints a new NFT for the user
 
         uint256 tokenId = s_tokenCounter;
         s_tokenCounter++;
-        s_userToNFTs[msg.sender].push(tokenId);
         _mint(msg.sender, tokenId);
         address[] memory ancestors = new address[](1);
         ancestors[0] = msg.sender;
@@ -73,10 +83,12 @@ contract TreeNft is ERC721, Ownable {
             initialPhotos,
             geoHash,
             ancestors,
-            organisationAddress,
             block.timestamp,
             0
         );
+
+        s_userToNFTs[msg.sender].push(tokenId);
+        planterTokenContract.mint(msg.sender, tokenId);
     }
 
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
@@ -196,6 +208,8 @@ contract TreeNft is ERC721, Ownable {
             s_tokenIDtoTreeNftVerfication[s_treeNftVerification] = treeVerification;
             s_treeTokenIdToVerifications[_tokenId].push(s_treeNftVerification);
             s_treeNftVerification++;
+            verifierTokenContract.mint(msg.sender, 1);
+            planterTokenContract.mint(ownerOf(_tokenId), 1);
         }
     }
 
@@ -301,9 +315,13 @@ contract TreeNft is ERC721, Ownable {
         // This function marks a tree as dead
 
         if (!_exists(tokenId)) revert InvalidTreeID();
-        if(s_tokenIDtoTree[tokenId].death != type(uint256).max) revert TreeAlreadyDead();
+        if (s_tokenIDtoTree[tokenId].death != type(uint256).max) revert TreeAlreadyDead();
         if (ownerOf(tokenId) != msg.sender) revert NotTreeOwner();
-        if(s_tokenIDtoTree[tokenId].planting + minimumTimeToMarkTreeDead >= block.timestamp) revert MinimumMarkDeadTimeNotReached();
+        if (s_tokenIDtoTree[tokenId].planting + minimumTimeToMarkTreeDead >= block.timestamp) {
+            revert MinimumMarkDeadTimeNotReached();
+        }
+
+        legacyToken.mint(msg.sender, 1);
 
         s_tokenIDtoTree[tokenId].death = block.timestamp;
         s_deathCounter++;

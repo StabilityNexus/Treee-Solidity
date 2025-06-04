@@ -55,7 +55,18 @@ struct Tree {
     string[] photos;
     string geoHash;
     address[] ancestors;
-    address organisationAddress;
     uint256 lastCareTimestamp;
     uint256 careCount;
+}
+
+struct TreePlantingProposal {
+    uint256 id;
+    uint256 latitude;
+    uint256 longitude;
+    string species;
+    string imageUri;
+    string qrIpfsHash;
+    string[] photos;
+    string geoHash;
+    uint256 status;
 }

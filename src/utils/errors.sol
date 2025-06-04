@@ -17,6 +17,9 @@ error InvalidDescriptionInput();
 error InvalidOrganisationIdInput();
 error NeedAnotherOwner();
 
+error InvalidProposalId();
+error AlreadyVoted();
+
 /// Request
 error InvalidRequestId();
 error InvalidStatus();

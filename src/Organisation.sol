@@ -20,12 +20,17 @@ contract Organisation {
     TreeNft public treeNFTContract;
 
     uint256 private s_verificationCounter;
-    uint256 private s_leftMembersCounter;
+    uint256 private s_treePlantingProposalCounter;
 
     mapping(uint256 => OrganisationVerificationRequest) private s_verificationIDtoVerification;
     mapping(address => OrganisationVerificationRequest[]) private s_userAddressToVerifications;
     mapping(uint256 => address[]) private s_verificationYesVoters;
     mapping(uint256 => address[]) private s_verificationNoVoters;
+
+    mapping(uint256 => TreePlantingProposal) private s_treePlantingProposalIDtoTreePlantingProposal;
+    mapping(address => TreePlantingProposal[]) private s_userAddressToTreePlantingProposals;
+    mapping(uint256 => address[]) private s_treeProposalYesVoters;
+    mapping(uint256 => address[]) private s_treeProposalNoVoters;
 
     event UserAddedToOrganisation(
         address indexed user, address indexed organisationContract, uint256 timestamp, address by_user
@@ -62,7 +67,7 @@ contract Organisation {
         founder = _founder;
         owners.push(_creator);
         members.push(_creator);
-        s_leftMembersCounter = 0;
+        s_treePlantingProposalCounter = 0;
         s_verificationCounter = 0;
         timeOfCreation = block.timestamp;
         treeNFTContract = TreeNft(_treeNFTContractAddress);
@@ -130,11 +135,10 @@ contract Organisation {
         external
         returns (uint256)
     {
-        // This function allows a user to request verification of a tree
-
         if (!checkMembership(msg.sender)) revert NotOrganisationMember();
+
         OrganisationVerificationRequest memory request = OrganisationVerificationRequest({
-            id: s_verificationCounter,
+            id: s_verificationCounter, // ID is current counter value
             initialMember: msg.sender,
             organisationContract: address(this),
             status: 0,
@@ -143,13 +147,21 @@ contract Organisation {
             proofHashes: _proofHashes,
             treeNftId: _treeNftID
         });
+
         if (checkOwnership(msg.sender)) {
             s_verificationYesVoters[s_verificationCounter].push(msg.sender);
         }
-        s_verificationIDtoVerification[s_verificationCounter] = request;
         s_userAddressToVerifications[msg.sender].push(request);
+        s_verificationIDtoVerification[s_verificationCounter] = request;
+
+        if (s_verificationYesVoters[request.id].length > owners.length / 2) {
+            request.status = 1;
+            s_verificationIDtoVerification[s_verificationCounter] = request;
+            treeNFTContract.verify(request.treeNftId, request.proofHashes, request.description);
+        }
+        uint256 currentId = s_verificationCounter;
         s_verificationCounter++;
-        return request.id;
+        return currentId;
     }
 
     function getVerificationRequest(uint256 verificationID)
@@ -163,14 +175,64 @@ contract Organisation {
         return s_verificationIDtoVerification[verificationID];
     }
 
-    function getVerificationRequests() external view returns (OrganisationVerificationRequest[] memory) {
-        // This function returns all verification requests for the organisation
-
-        OrganisationVerificationRequest[] memory requests = new OrganisationVerificationRequest[](s_verificationCounter);
+    function getVerificationRequests(uint256 status) external view returns (OrganisationVerificationRequest[] memory) {
+        // First pass: count matching requests
+        uint256 matchCount = 0;
         for (uint256 i = 0; i < s_verificationCounter; i++) {
-            requests[i] = s_verificationIDtoVerification[i];
+            if (s_verificationIDtoVerification[i].status == status) {
+                matchCount++;
+            }
+        }
+        OrganisationVerificationRequest[] memory requests = new OrganisationVerificationRequest[](matchCount);
+        uint256 currentIndex = 0;
+        for (uint256 i = 0; i < s_verificationCounter; i++) {
+            if (s_verificationIDtoVerification[i].status == status) {
+                requests[currentIndex] = s_verificationIDtoVerification[i];
+                currentIndex++;
+            }
         }
         return requests;
+    }
+
+    function getVerificationRequestsByStatus(uint256 status, uint256 offset, uint256 limit)
+        external
+        view
+        returns (OrganisationVerificationRequest[] memory requests, uint256 totalMatching, bool hasMore)
+    {
+        require(limit > 0, "Limit must be greater than 0");
+        require(limit <= 100, "Limit too high");
+
+        // First pass: count total matching requests
+        uint256 matchCount = 0;
+        for (uint256 i = 0; i < s_verificationCounter; i++) {
+            if (s_verificationIDtoVerification[i].status == status) {
+                matchCount++;
+            }
+        }
+        totalMatching = matchCount;
+        if (offset >= matchCount) {
+            return (new OrganisationVerificationRequest[](0), totalMatching, false);
+        }
+        uint256 remaining = matchCount - offset;
+        uint256 itemsToReturn = remaining < limit ? remaining : limit;
+
+        requests = new OrganisationVerificationRequest[](itemsToReturn);
+
+        uint256 currentMatch = 0;
+        uint256 resultIndex = 0;
+
+        for (uint256 i = 0; i < s_verificationCounter && resultIndex < itemsToReturn; i++) {
+            if (s_verificationIDtoVerification[i].status == status) {
+                if (currentMatch >= offset) {
+                    requests[resultIndex] = s_verificationIDtoVerification[i];
+                    resultIndex++;
+                }
+                currentMatch++;
+            }
+        }
+
+        hasMore = offset + itemsToReturn < totalMatching;
+        return (requests, totalMatching, hasMore);
     }
 
     function voteOnVerificationRequest(uint256 verificationID, uint256 vote) external onlyOwner {
@@ -184,10 +246,7 @@ contract Organisation {
             s_verificationNoVoters[verificationID].push(msg.sender);
         }
 
-        if (
-            s_verificationYesVoters[verificationID].length == owners.length / 2
-                || s_verificationYesVoters[verificationID].length > owners.length / 2
-        ) {
+        if (s_verificationYesVoters[verificationID].length > owners.length / 2) {
             request.status = 1;
             treeNFTContract.verify(request.treeNftId, request.proofHashes, request.description);
         } else if (s_verificationNoVoters[verificationID].length == owners.length / 2) {
@@ -195,8 +254,147 @@ contract Organisation {
         }
     }
 
+    function plantTreeProposal(
+        uint256 _latitude,
+        uint256 _longitude,
+        string memory _species,
+        string memory _imageURI,
+        string memory _qrIpfshash,
+        string[] memory photos,
+        string memory geoHash
+    ) public {
+        if (!checkMembership(msg.sender)) revert NotOrganisationMember();
+        TreePlantingProposal memory proposal = TreePlantingProposal({
+            id: s_treePlantingProposalCounter,
+            latitude: _latitude,
+            longitude: _longitude,
+            species: _species,
+            imageUri: _imageURI,
+            qrIpfsHash: _qrIpfshash,
+            photos: photos,
+            geoHash: geoHash,
+            status: 0
+        });
+        if (checkOwnership(msg.sender)) {
+            s_treeProposalYesVoters[s_treePlantingProposalCounter].push(msg.sender);
+        }
+        s_userAddressToTreePlantingProposals[msg.sender].push(proposal);
+        s_treePlantingProposalCounter++;
+        if (s_treeProposalYesVoters[proposal.id].length > owners.length / 2) {
+            proposal.status = 1;
+        }
+        s_treePlantingProposalIDtoTreePlantingProposal[proposal.id] = proposal;
+    }
+
+    function getTreePlantingProposal(uint256 proposalID) external view returns (TreePlantingProposal memory) {
+        if (proposalID >= s_treePlantingProposalCounter) revert InvalidProposalId();
+        return s_treePlantingProposalIDtoTreePlantingProposal[proposalID];
+    }
+
+    function getTreePlantingProposals(uint256 status) external view returns (TreePlantingProposal[] memory) {
+        uint256 matchCount = 0;
+        for (uint256 i = 0; i < s_treePlantingProposalCounter; i++) {
+            if (s_treePlantingProposalIDtoTreePlantingProposal[i].status == status) {
+                matchCount++;
+            }
+        }
+        TreePlantingProposal[] memory proposals = new TreePlantingProposal[](matchCount);
+        uint256 currentIndex = 0;
+        for (uint256 i = 0; i < s_treePlantingProposalCounter; i++) {
+            if (s_treePlantingProposalIDtoTreePlantingProposal[i].status == status) {
+                proposals[currentIndex] = s_treePlantingProposalIDtoTreePlantingProposal[i];
+                currentIndex++;
+            }
+        }
+
+        return proposals;
+    }
+
+    function getTreePlantingProposalsByStatus(uint256 status, uint256 offset, uint256 limit)
+        external
+        view
+        returns (TreePlantingProposal[] memory proposals, uint256 totalMatching, bool hasMore)
+    {
+        require(limit > 0, "Limit must be greater than 0");
+        require(limit <= 100, "Limit too high");
+
+        // First pass: count total matching proposals
+        uint256 matchCount = 0;
+        for (uint256 i = 0; i < s_treePlantingProposalCounter; i++) {
+            if (s_treePlantingProposalIDtoTreePlantingProposal[i].status == status) {
+                matchCount++;
+            }
+        }
+
+        totalMatching = matchCount;
+        if (offset >= matchCount) {
+            return (new TreePlantingProposal[](0), totalMatching, false);
+        }
+
+        uint256 remaining = matchCount - offset;
+        uint256 itemsToReturn = remaining < limit ? remaining : limit;
+
+        proposals = new TreePlantingProposal[](itemsToReturn);
+
+        uint256 currentMatch = 0;
+        uint256 resultIndex = 0;
+
+        for (uint256 i = 0; i < s_treePlantingProposalCounter && resultIndex < itemsToReturn; i++) {
+            if (s_treePlantingProposalIDtoTreePlantingProposal[i].status == status) {
+                if (currentMatch >= offset) {
+                    proposals[resultIndex] = s_treePlantingProposalIDtoTreePlantingProposal[i];
+                    resultIndex++;
+                }
+                currentMatch++;
+            }
+        }
+
+        hasMore = offset + itemsToReturn < totalMatching;
+        return (proposals, totalMatching, hasMore);
+    }
+
+    function voteOnTreePlantingProposal(uint256 proposalID, uint256 vote) external onlyOwner {
+        if (proposalID >= s_treePlantingProposalCounter) revert InvalidProposalId();
+
+        TreePlantingProposal storage proposal = s_treePlantingProposalIDtoTreePlantingProposal[proposalID];
+        if (proposal.status != 0) revert AlreadyProcessed();
+        address[] memory yesVoters = s_treeProposalYesVoters[proposalID];
+        address[] memory noVoters = s_treeProposalNoVoters[proposalID];
+
+        for (uint256 i = 0; i < yesVoters.length; i++) {
+            if (yesVoters[i] == msg.sender) revert AlreadyVoted();
+        }
+        for (uint256 i = 0; i < noVoters.length; i++) {
+            if (noVoters[i] == msg.sender) revert AlreadyVoted();
+        }
+
+        if (vote == 1) {
+            s_treeProposalYesVoters[proposalID].push(msg.sender);
+        } else {
+            s_treeProposalNoVoters[proposalID].push(msg.sender);
+        }
+
+        uint256 requiredVotes = (owners.length + 1) / 2;
+
+        if (s_treeProposalYesVoters[proposalID].length >= requiredVotes) {
+            proposal.status = 1;
+            treeNFTContract.mintNft(
+                proposal.latitude,
+                proposal.longitude,
+                proposal.species,
+                proposal.imageUri,
+                proposal.qrIpfsHash,
+                proposal.geoHash,
+                proposal.photos
+            );
+        } else if (s_treeProposalNoVoters[proposalID].length >= requiredVotes) {
+            proposal.status = 2;
+        }
+    }
+
     function makeOwner(address newOwner) external onlyOwner {
         // This function allows an owner to add a new owner to the organisation
+
         if (newOwner == address(0)) revert InvalidAddressInput();
         if (!checkMembership(newOwner)) revert NotOrganisationMember();
         if (checkOwnership(newOwner)) revert AlreadyOwner();
