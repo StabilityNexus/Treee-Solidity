@@ -11,12 +11,12 @@ contract Organisation {
     string public name;
     string public description;
     string public photoIpfsHash;
-    address public organisationFactoryAddress;
+    uint256 public paginationLimit;
+    OrganisationFactory public organisationFactoryContract;
     address[] public owners;
     address[] public members;
     uint256 public timeOfCreation;
     address public founder;
-
     TreeNft public treeNFTContract;
 
     uint256 private s_verificationCounter;
@@ -63,7 +63,6 @@ contract Organisation {
         name = _name;
         description = _description;
         photoIpfsHash = _photoIpfsHash;
-        organisationFactoryAddress = _factoryAddress;
         founder = _founder;
         owners.push(_creator);
         members.push(_creator);
@@ -71,14 +70,17 @@ contract Organisation {
         s_verificationCounter = 0;
         timeOfCreation = block.timestamp;
         treeNFTContract = TreeNft(_treeNFTContractAddress);
+        organisationFactoryContract = OrganisationFactory(_factoryAddress);
+        paginationLimit = 100;
     }
 
     function addMember(address user) external onlyOwner {
         // This function is called by an owner to process a join request
 
-        require(user != address(0), "Invalid address");
-        require(!checkMembership(user), "Already a member");
+        if (user == address(0)) revert InvalidAddressInput();
+        if (checkMembership(user)) revert AlreadyMember();
         members.push(user);
+        organisationFactoryContract.addMemberToOrganisation(user);
         emit UserAddedToOrganisation(user, address(this), block.timestamp, msg.sender);
     }
 
@@ -150,15 +152,13 @@ contract Organisation {
 
         if (checkOwnership(msg.sender)) {
             s_verificationYesVoters[s_verificationCounter].push(msg.sender);
+            if (owners.length <= 2) {
+                request.status = 1;
+                treeNFTContract.verify(request.treeNftId, request.proofHashes, request.description);
+            }
         }
         s_userAddressToVerifications[msg.sender].push(request);
         s_verificationIDtoVerification[s_verificationCounter] = request;
-
-        if (s_verificationYesVoters[request.id].length > owners.length / 2) {
-            request.status = 1;
-            s_verificationIDtoVerification[s_verificationCounter] = request;
-            treeNFTContract.verify(request.treeNftId, request.proofHashes, request.description);
-        }
         uint256 currentId = s_verificationCounter;
         s_verificationCounter++;
         return currentId;
@@ -199,10 +199,9 @@ contract Organisation {
         view
         returns (OrganisationVerificationRequest[] memory requests, uint256 totalMatching, bool hasMore)
     {
-        require(limit > 0, "Limit must be greater than 0");
-        require(limit <= 100, "Limit too high");
+        if (limit <= 0) revert InvalidInput();
+        if (limit > paginationLimit) revert PaginationLimitExceeded();
 
-        // First pass: count total matching requests
         uint256 matchCount = 0;
         for (uint256 i = 0; i < s_verificationCounter; i++) {
             if (s_verificationIDtoVerification[i].status == status) {
@@ -246,10 +245,11 @@ contract Organisation {
             s_verificationNoVoters[verificationID].push(msg.sender);
         }
 
-        if (s_verificationYesVoters[verificationID].length > owners.length / 2) {
+        uint256 requiredVotes = (owners.length + 1) / 2;
+        if (s_verificationYesVoters[verificationID].length >= requiredVotes) {
             request.status = 1;
             treeNFTContract.verify(request.treeNftId, request.proofHashes, request.description);
-        } else if (s_verificationNoVoters[verificationID].length == owners.length / 2) {
+        } else if (s_verificationNoVoters[verificationID].length >= (owners.length - requiredVotes)) {
             request.status = 2;
         }
     }
@@ -277,12 +277,21 @@ contract Organisation {
         });
         if (checkOwnership(msg.sender)) {
             s_treeProposalYesVoters[s_treePlantingProposalCounter].push(msg.sender);
+            if (owners.length <= 2) {
+                proposal.status = 1;
+                treeNFTContract.mintNft(
+                    proposal.latitude,
+                    proposal.longitude,
+                    proposal.species,
+                    proposal.imageUri,
+                    proposal.qrIpfsHash,
+                    proposal.geoHash,
+                    proposal.photos
+                );
+            }
         }
         s_userAddressToTreePlantingProposals[msg.sender].push(proposal);
         s_treePlantingProposalCounter++;
-        if (s_treeProposalYesVoters[proposal.id].length > owners.length / 2) {
-            proposal.status = 1;
-        }
         s_treePlantingProposalIDtoTreePlantingProposal[proposal.id] = proposal;
     }
 
@@ -315,8 +324,8 @@ contract Organisation {
         view
         returns (TreePlantingProposal[] memory proposals, uint256 totalMatching, bool hasMore)
     {
-        require(limit > 0, "Limit must be greater than 0");
-        require(limit <= 100, "Limit too high");
+        if (limit <= 0) revert InvalidInput();
+        if (limit > paginationLimit) revert PaginationLimitExceeded();
 
         // First pass: count total matching proposals
         uint256 matchCount = 0;
@@ -348,7 +357,6 @@ contract Organisation {
                 currentMatch++;
             }
         }
-
         hasMore = offset + itemsToReturn < totalMatching;
         return (proposals, totalMatching, hasMore);
     }
@@ -375,7 +383,6 @@ contract Organisation {
         }
 
         uint256 requiredVotes = (owners.length + 1) / 2;
-
         if (s_treeProposalYesVoters[proposalID].length >= requiredVotes) {
             proposal.status = 1;
             treeNFTContract.mintNft(
@@ -458,5 +465,9 @@ contract Organisation {
         // This function returns detailed information about the organisation
 
         return (address(this), id, name, description, photoIpfsHash, owners, members, timeOfCreation);
+    }
+
+    function changePaginationLimit(uint256 _limit) external onlyOwner {
+        paginationLimit = _limit;
     }
 }

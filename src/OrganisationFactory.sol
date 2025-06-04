@@ -29,8 +29,8 @@ contract OrganisationFactory is Ownable {
     {
         // This function allows a user to create a new organization.
 
-        require(bytes(_name).length > 0, "Name cannot be empty");
-        require(bytes(_description).length > 0, "Description cannot be empty");
+        if (bytes(_name).length == 0) revert InvalidNameInput();
+        if (bytes(_description).length == 0) revert InvalidDescriptionInput();
         organisationId = s_organisationCounter;
 
         // Deploy new Organization contract
@@ -51,8 +51,9 @@ contract OrganisationFactory is Ownable {
     function getOrganisationAddress(uint256 _organizationId) external view returns (address) {
         // This function retrives the address of an organization based on its ID.
 
+        if (_organizationId >= s_organisationCounter || _organizationId < 0) revert InvalidOrganisationId();
+        if (s_organisationIdToAddress[_organizationId] == address(0)) revert OrganisationDoesNotExist();
         address orgAddress = s_organisationIdToAddress[_organizationId];
-        require(orgAddress != address(0), "Organization does not exist");
         return orgAddress;
     }
 
@@ -60,14 +61,6 @@ contract OrganisationFactory is Ownable {
         // This function retrieves the list of organization IDs associated with a user.
 
         return s_userToOrganisations[_user];
-    }
-
-    function addUserToOrganisation(address _user) external {
-        // This function allows an organization to add a user to its list of organizations.
-
-        require(s_isOrganisation[msg.sender], "Only organization can add user");
-        uint256 organisationId = s_organisationAddressToId[msg.sender];
-        s_userToOrganisations[_user].push(organisationId);
     }
 
     function getMyOrganisations() external view returns (uint256[] memory) {
@@ -94,10 +87,12 @@ contract OrganisationFactory is Ownable {
         return s_organisationCounter;
     }
 
-    function isValidOrganisation(address _organisationAddress) external view returns (bool) {
-        // This function checks if the provided address is a valid organisation.
-
-        return s_isOrganisation[_organisationAddress];
+    function addMemberToOrganisation(address _member) external {
+        // This function adds a member to an organization.
+        uint256 _organisationId = s_organisationAddressToId[msg.sender];
+        if (_organisationId >= s_organisationCounter || _organisationId < 0) revert InvalidOrganisationId();
+        if (s_organisationIdToAddress[_organisationId] == address(0)) revert OrganisationDoesNotExist();
+        s_userToOrganisations[_member].push(_organisationId);
     }
 
     function getOrganisationInfo(uint256 _organizationId)
@@ -116,9 +111,9 @@ contract OrganisationFactory is Ownable {
     {
         // This function retrieves detailed information about an organization based on its ID.
 
+        if (_organizationId >= s_organisationCounter || _organizationId < 0) revert InvalidOrganisationId();
+        if (s_organisationIdToAddress[_organizationId] == address(0)) revert OrganisationDoesNotExist();
         organizationAddress = s_organisationIdToAddress[_organizationId];
-        require(organizationAddress != address(0), "Organization does not exist");
-
         Organisation org = Organisation(organizationAddress);
         return org.getOrganisationInfo();
     }
@@ -177,17 +172,16 @@ contract OrganisationFactory is Ownable {
     function updateTreeNFTContract(address _newTreeNFTContract) external onlyOwner {
         // This function updates the address of the Tree NFT contract.
 
-        require(_newTreeNFTContract != address(0), "Invalid contract address");
+        if (_newTreeNFTContract == address(0)) revert InvalidInput();
         treeNFTContract = _newTreeNFTContract;
     }
 
-    function removeOrganisation(address _organizationAddress) external onlyOwner {
+    function removeOrganisation(address _organisationAddress) external onlyOwner {
         // This function allows the owner to remove an organization from the factory.
 
-        require(s_isOrganisation[_organizationAddress], "Not a valid organization");
-        s_isOrganisation[_organizationAddress] = false;
+        if (s_isOrganisation[_organisationAddress] == false) revert OrganisationDoesNotExist();
         for (uint256 i = 0; i < s_allOrganisations.length; i++) {
-            if (s_allOrganisations[i] == _organizationAddress) {
+            if (s_allOrganisations[i] == _organisationAddress) {
                 s_allOrganisations[i] = s_allOrganisations[s_allOrganisations.length - 1];
                 s_allOrganisations.pop();
                 s_allOrganisationIds[i] = s_allOrganisationIds[s_allOrganisationIds.length - 1];
@@ -200,5 +194,11 @@ contract OrganisationFactory is Ownable {
     function getTreeNFTContract() external view returns (address) {
         // This function retrieves the address of the Tree NFT contract.
         return treeNFTContract;
+    }
+
+    function isValidOrganisation(address _organisationAddress) external view returns (bool) {
+        // This function checks if the provided address is a valid organisation.
+
+        return s_isOrganisation[_organisationAddress];
     }
 }
