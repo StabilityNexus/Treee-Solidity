@@ -203,7 +203,7 @@ contract TreeNftTest is Test {
 
         treeNft.verify(0, proofHashes, "Tree looks healthy");
 
-        assertTrue(treeNft._isVerified(0, verifier1));
+        assertTrue(treeNft.isVerified(0, verifier1));
 
         TreeNftVerification[] memory verifications = treeNft.getTreeNftVerifiers(0);
         assertEq(verifications.length, 1);
@@ -255,8 +255,8 @@ contract TreeNftTest is Test {
         proofHashes2[0] = "proof2";
         treeNft.verify(0, proofHashes2, "Verifier 2 says OK");
 
-        assertTrue(treeNft._isVerified(0, verifier1));
-        assertTrue(treeNft._isVerified(0, verifier2));
+        assertTrue(treeNft.isVerified(0, verifier1));
+        assertTrue(treeNft.isVerified(0, verifier2));
 
         TreeNftVerification[] memory verifications = treeNft.getTreeNftVerifiers(0);
         assertEq(verifications.length, 2);
@@ -477,7 +477,7 @@ contract TreeNftTest is Test {
         Tree memory tree = treeNft.getTreeDetailsbyID(0);
         assertEq(tree.species, SPECIES);
         assertEq(treeNft.ownerOf(0), user1);
-        assertTrue(treeNft._isVerified(0, verifier1));
+        assertTrue(treeNft.isVerified(0, verifier1));
 
         TreeNftVerification[] memory verifications = treeNft.getTreeNftVerifiers(0);
         assertEq(verifications.length, 1);

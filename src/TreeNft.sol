@@ -204,7 +204,7 @@ contract TreeNft is ERC721, Ownable {
         if (!_exists(_tokenId)) revert InvalidTreeID();
         TreeNftVerification memory treeVerification =
             TreeNftVerification(msg.sender, block.timestamp, _proofHashes, _description, false, _tokenId);
-        if (!_isVerified(_tokenId, msg.sender)) {
+        if (!isVerified(_tokenId, msg.sender)) {
             s_tokenIDtoUserVerification[_tokenId][msg.sender] = true;
             s_tokenIDtoVerifiers[_tokenId].push(msg.sender);
             s_verifierToTokenIDs[msg.sender].push(_tokenId);
@@ -291,13 +291,13 @@ contract TreeNft is ERC721, Ownable {
     function getTreeNftVerifiersPaginated(uint256 _tokenId, uint256 offset, uint256 limit)
         public
         view
-        returns (TreeNftVerification[] memory verifications, uint256 totalCount, uint256 visibleCount)
+        returns (TreeNftVerification[] memory verifications, uint256 totalCount, uint256 visiblecount)
     {
         // This function retrieves all verifiers for a specific tree with pagination
 
         uint256[] storage verificationIds = s_treeTokenIdToVerifications[_tokenId];
         totalCount = verificationIds.length;
-        visibleCount;
+        uint256 visibleCount = 0;
         for (uint256 i = 0; i < totalCount; i++) {
             if (!s_tokenIDtoTreeNftVerfication[verificationIds[i]].isHidden) {
                 visibleCount++;
@@ -360,7 +360,7 @@ contract TreeNft is ERC721, Ownable {
         s_addressToUser[msg.sender].profilePhotoIpfs = _profilePhotoHash;
     }
 
-    function _isVerified(uint256 tokenId, address verifier) public view returns (bool) {
+    function isVerified(uint256 tokenId, address verifier) public view returns (bool) {
         // This function checks if a verifier has verified a tree
 
         return s_tokenIDtoUserVerification[tokenId][verifier];
