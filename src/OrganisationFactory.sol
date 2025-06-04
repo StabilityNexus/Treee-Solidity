@@ -90,6 +90,7 @@ contract OrganisationFactory is Ownable {
     function addMemberToOrganisation(address _member) external {
         // This function adds a member to an organization.
         uint256 _organisationId = s_organisationAddressToId[msg.sender];
+        if (!s_isOrganisation[msg.sender]) revert InvalidOrganisation();
         if (_organisationId >= s_organisationCounter || _organisationId < 0) revert InvalidOrganisationId();
         if (s_organisationIdToAddress[_organisationId] == address(0)) revert OrganisationDoesNotExist();
         s_userToOrganisations[_member].push(_organisationId);

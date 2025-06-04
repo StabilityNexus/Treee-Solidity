@@ -17,8 +17,8 @@ contract TreeNftTest is Test {
     address public organisation = address(0x6);
 
     // Sample tree data
-    uint256 constant LATITUDE = 123456789;
-    uint256 constant LONGITUDE = 987654321;
+    uint256 constant LATITUDE = 1234567;
+    uint256 constant LONGITUDE = 9876543;
     string constant SPECIES = "Oak Tree";
     string constant IMAGE_URI = "ipfs://QmSampleImageHash";
     string constant QR_IPFS_HASH = "QmSampleQRHash";

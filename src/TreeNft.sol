@@ -67,6 +67,9 @@ contract TreeNft is ERC721, Ownable {
     ) public {
         // This function mints a new NFT for the user
 
+        if (latitude < 0 || latitude > 180 * 1e6) revert InvalidCoordinates();
+        if (longitude < 0 || longitude > 360 * 1e6) revert InvalidCoordinates();
+
         uint256 tokenId = s_tokenCounter;
         s_tokenCounter++;
         _mint(msg.sender, tokenId);
@@ -221,6 +224,7 @@ contract TreeNft is ERC721, Ownable {
         treeNftVerification.isHidden = true;
         User memory user = s_addressToUser[treeNftVerification.verifier];
         user.verificationsRevoked++;
+        s_addressToUser[treeNftVerification.verifier] = user;
         emit VerificationRemoved(_verificationId, treeNftVerification.treeNftId, treeNftVerification.verifier);
     }
 
@@ -263,15 +267,23 @@ contract TreeNft is ERC721, Ownable {
     }
 
     function getTreeNftVerifiers(uint256 _tokenId) public view returns (TreeNftVerification[] memory) {
-        // This function returns the verifiers of a particular TreeNFT
+        // This function retrieves all verifiers for a specific tree
 
         uint256[] storage verificationIds = s_treeTokenIdToVerifications[_tokenId];
-        TreeNftVerification[] memory treeNftVerifications = new TreeNftVerification[](verificationIds.length);
+        uint256 visibleCount;
         for (uint256 i = 0; i < verificationIds.length; i++) {
-            uint256 verificationId = verificationIds[i];
-            TreeNftVerification memory verification = s_tokenIDtoTreeNftVerfication[verificationId];
-            if (verification.isHidden) continue;
-            treeNftVerifications[i] = verification;
+            if (!s_tokenIDtoTreeNftVerfication[verificationIds[i]].isHidden) {
+                visibleCount++;
+            }
+        }
+        TreeNftVerification[] memory treeNftVerifications = new TreeNftVerification[](visibleCount);
+        uint256 currentIndex;
+        for (uint256 i = 0; i < verificationIds.length; i++) {
+            TreeNftVerification memory verification = s_tokenIDtoTreeNftVerfication[verificationIds[i]];
+            if (!verification.isHidden) {
+                treeNftVerifications[currentIndex] = verification;
+                currentIndex++;
+            }
         }
         return treeNftVerifications;
     }
@@ -281,20 +293,16 @@ contract TreeNft is ERC721, Ownable {
         view
         returns (TreeNftVerification[] memory verifications, uint256 totalCount, uint256 visibleCount)
     {
-        uint256[] storage verificationIds = s_treeTokenIdToVerifications[_tokenId];
-        TreeNftVerification[] memory allVisibleVerifications = new TreeNftVerification[](verificationIds.length);
-        uint256 visibleIndex = 0;
-        for (uint256 i = 0; i < verificationIds.length; i++) {
-            uint256 verificationId = verificationIds[i];
-            TreeNftVerification memory verification = s_tokenIDtoTreeNftVerfication[verificationId];
+        // This function retrieves all verifiers for a specific tree with pagination
 
-            if (!verification.isHidden) {
-                allVisibleVerifications[visibleIndex] = verification;
-                visibleIndex++;
+        uint256[] storage verificationIds = s_treeTokenIdToVerifications[_tokenId];
+        totalCount = verificationIds.length;
+        visibleCount;
+        for (uint256 i = 0; i < totalCount; i++) {
+            if (!s_tokenIDtoTreeNftVerfication[verificationIds[i]].isHidden) {
+                visibleCount++;
             }
         }
-        totalCount = verificationIds.length;
-        visibleCount = visibleIndex;
         if (offset >= visibleCount) {
             return (new TreeNftVerification[](0), totalCount, visibleCount);
         }
@@ -304,9 +312,17 @@ contract TreeNft is ERC721, Ownable {
         }
         uint256 resultLength = end - offset;
         verifications = new TreeNftVerification[](resultLength);
-
-        for (uint256 i = 0; i < resultLength; i++) {
-            verifications[i] = allVisibleVerifications[offset + i];
+        uint256 visibleIndex;
+        uint256 resultIndex;
+        for (uint256 i = 0; i < totalCount && resultIndex < resultLength; i++) {
+            TreeNftVerification memory verification = s_tokenIDtoTreeNftVerfication[verificationIds[i]];
+            if (!verification.isHidden) {
+                if (visibleIndex >= offset && visibleIndex < end) {
+                    verifications[resultIndex] = verification;
+                    resultIndex++;
+                }
+                visibleIndex++;
+            }
         }
         return (verifications, totalCount, visibleCount);
     }

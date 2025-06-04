@@ -19,8 +19,8 @@ contract OrganisationTest is Test {
     address private user2 = address(0x3);
     address private user3 = address(0x4);
     address private user4 = address(0x5);
-    uint256 constant LATITUDE = 123456789;
-    uint256 constant LONGITUDE = 987654321;
+    uint256 constant LATITUDE = 1234567;
+    uint256 constant LONGITUDE = 9876543;
     string constant SPECIES = "Oak";
     string constant IMAGE_URI = "https://example.com/tree.jpg";
     string constant QR_IPFS_HASH = "QmTestQrHash";

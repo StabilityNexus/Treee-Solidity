@@ -116,6 +116,7 @@ contract Organisation {
         // This function allows an owner to remove a member from the organisation
 
         if (!checkMembership(msg.sender)) revert NotOrganisationMember();
+        if (!checkMembership(member)) revert NotOrganisationMember();
         for (uint256 i = 0; i < members.length; i++) {
             if (members[i] == member) {
                 members[i] = members[members.length - 1];
@@ -263,7 +264,10 @@ contract Organisation {
         string[] memory photos,
         string memory geoHash
     ) public {
+        if (_latitude < 0 || _latitude > 180 * 1e6) revert InvalidCoordinates();
+        if (_longitude < 0 || _longitude > 360 * 1e6) revert InvalidCoordinates();
         if (!checkMembership(msg.sender)) revert NotOrganisationMember();
+
         TreePlantingProposal memory proposal = TreePlantingProposal({
             id: s_treePlantingProposalCounter,
             latitude: _latitude,
@@ -296,11 +300,15 @@ contract Organisation {
     }
 
     function getTreePlantingProposal(uint256 proposalID) external view returns (TreePlantingProposal memory) {
+        // This function returns a tree planting proposal
+
         if (proposalID >= s_treePlantingProposalCounter) revert InvalidProposalId();
         return s_treePlantingProposalIDtoTreePlantingProposal[proposalID];
     }
 
     function getTreePlantingProposals(uint256 status) external view returns (TreePlantingProposal[] memory) {
+        // This function returns all tree planting proposals
+
         uint256 matchCount = 0;
         for (uint256 i = 0; i < s_treePlantingProposalCounter; i++) {
             if (s_treePlantingProposalIDtoTreePlantingProposal[i].status == status) {
@@ -324,10 +332,10 @@ contract Organisation {
         view
         returns (TreePlantingProposal[] memory proposals, uint256 totalMatching, bool hasMore)
     {
+        // This function returns tree planting proposals by status
+
         if (limit <= 0) revert InvalidInput();
         if (limit > paginationLimit) revert PaginationLimitExceeded();
-
-        // First pass: count total matching proposals
         uint256 matchCount = 0;
         for (uint256 i = 0; i < s_treePlantingProposalCounter; i++) {
             if (s_treePlantingProposalIDtoTreePlantingProposal[i].status == status) {
@@ -362,6 +370,8 @@ contract Organisation {
     }
 
     function voteOnTreePlantingProposal(uint256 proposalID, uint256 vote) external onlyOwner {
+        // This function allows users to vote on a tree planting proposal
+
         if (proposalID >= s_treePlantingProposalCounter) revert InvalidProposalId();
 
         TreePlantingProposal storage proposal = s_treePlantingProposalIDtoTreePlantingProposal[proposalID];
@@ -468,6 +478,9 @@ contract Organisation {
     }
 
     function changePaginationLimit(uint256 _limit) external onlyOwner {
+        // This function allows an owner to change the pagination limit
+
+        if (_limit == 0 || _limit > 1000) revert InvalidInput();
         paginationLimit = _limit;
     }
 }

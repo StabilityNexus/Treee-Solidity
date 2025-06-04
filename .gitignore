@@ -18,7 +18,7 @@ lib/
 .vscode/
 node_modules/
 
-broadcast
+/broadcast/
 
 ./.DS_Store
 

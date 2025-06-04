@@ -16,6 +16,7 @@ error NotOrganisationOwner();
 error AlreadyOwner();
 error AlreadyMember();
 error OnlyOwner();
+error InvalidOrganisation();
 
 error InvalidApprovalStatusInput();
 error InvalidDescriptionInput();
@@ -40,6 +41,7 @@ error InvalidNameInput();
 /// TreeNFT
 error InvalidTreeID();
 error MinimumMarkDeadTimeNotReached();
+error InvalidCoordinates();
 
 /// User
 error UserAlreadyRegistered();
