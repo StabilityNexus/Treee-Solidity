@@ -41,17 +41,22 @@ contract TreeNft is ERC721, Ownable {
 
     mapping(address => User) s_addressToUser;
 
-    constructor() Ownable(msg.sender) ERC721("TreeNFT", "TREE") {
+    constructor(
+        address _careTokenContract,
+        address _planterTokenContract,
+        address _verifierTokenContract,
+        address _legacyTokenContract
+    ) Ownable(msg.sender) ERC721("TreeNFT", "TREE") {
         s_tokenCounter = 0;
         s_organisationCounter = 0;
         s_deathCounter = 0;
         s_treeNftVerification = 0;
         s_userCounter = 0;
 
-        careTokenContract = new CareToken();
-        planterTokenContract = new PlanterToken();
-        verifierTokenContract = new VerifierToken();
-        legacyToken = new LegacyToken();
+        careTokenContract = CareToken(_careTokenContract);
+        planterTokenContract = PlanterToken(_planterTokenContract);
+        verifierTokenContract = VerifierToken(_verifierTokenContract);
+        legacyToken = LegacyToken(_legacyTokenContract);
     }
 
     event VerificationRemoved(uint256 indexed verificationId, uint256 indexed treeNftId, address indexed verifier);

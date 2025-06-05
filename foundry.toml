@@ -8,7 +8,8 @@ via_ir = true
 fs_permissions = [
     { access = "read", path = "./broadcast/" },
     { access = "read", path = "./out/" },
-    { access = "read-write", path = "./img/" }
+    { access = "read-write", path = "./img/" },
+    { access = "write", path = "./deployments" }
 ]
 
 optimizer = true
