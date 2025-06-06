@@ -53,6 +53,11 @@ contract TreeNft is ERC721, Ownable {
         s_treeNftVerification = 0;
         s_userCounter = 0;
 
+        if (_careTokenContract == address(0)) revert InvalidInput();
+        if (_planterTokenContract == address(0)) revert InvalidInput();
+        if (_verifierTokenContract == address(0)) revert InvalidInput();
+        if (_legacyTokenContract == address(0)) revert InvalidInput();
+
         careTokenContract = CareToken(_careTokenContract);
         planterTokenContract = PlanterToken(_planterTokenContract);
         verifierTokenContract = VerifierToken(_verifierTokenContract);
