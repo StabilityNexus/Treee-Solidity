@@ -72,8 +72,8 @@ contract TreeNft is ERC721, Ownable {
     ) public {
         // This function mints a new NFT for the user
 
-        if (latitude < 0 || latitude > 180 * 1e6) revert InvalidCoordinates();
-        if (longitude < 0 || longitude > 360 * 1e6) revert InvalidCoordinates();
+        if (latitude > 180 * 1e6) revert InvalidCoordinates();
+        if (longitude > 360 * 1e6) revert InvalidCoordinates();
 
         uint256 tokenId = s_tokenCounter;
         s_tokenCounter++;

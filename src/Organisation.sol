@@ -261,8 +261,8 @@ contract Organisation {
         string[] memory photos,
         string memory geoHash
     ) public {
-        if (_latitude < 0 || _latitude > 180 * 1e6) revert InvalidCoordinates();
-        if (_longitude < 0 || _longitude > 360 * 1e6) revert InvalidCoordinates();
+        if (_latitude > 180 * 1e6) revert InvalidCoordinates();
+        if (_longitude > 360 * 1e6) revert InvalidCoordinates();
         if (!checkMembership(msg.sender)) revert NotOrganisationMember();
 
         TreePlantingProposal memory proposal = TreePlantingProposal({
