@@ -2,7 +2,6 @@
 pragma solidity ^0.8.28;
 
 struct OrganisationDetails {
-    uint256 id;
     address contractAddress;
     string name;
     string description;

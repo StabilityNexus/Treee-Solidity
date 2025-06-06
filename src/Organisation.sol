@@ -7,7 +7,6 @@ import "./TreeNft.sol";
 import "./OrganisationFactory.sol";
 
 contract Organisation {
-    uint256 public immutable id;
     string public name;
     string public description;
     string public photoIpfsHash;
@@ -46,7 +45,6 @@ contract Organisation {
     }
 
     constructor(
-        uint256 _id,
         string memory _name,
         string memory _description,
         string memory _photoIpfsHash,
@@ -59,7 +57,6 @@ contract Organisation {
         if (_factoryAddress == address(0)) revert InvalidAddressInput();
         if (_treeNFTContractAddress == address(0)) revert InvalidAddressInput();
         if (bytes(_name).length == 0) revert InvalidNameInput();
-        id = _id;
         name = _name;
         description = _description;
         photoIpfsHash = _photoIpfsHash;
@@ -461,20 +458,11 @@ contract Organisation {
     function getOrganisationInfo()
         external
         view
-        returns (
-            address,
-            uint256,
-            string memory,
-            string memory,
-            string memory,
-            address[] memory,
-            address[] memory,
-            uint256
-        )
+        returns (address, string memory, string memory, string memory, address[] memory, address[] memory, uint256)
     {
         // This function returns detailed information about the organisation
 
-        return (address(this), id, name, description, photoIpfsHash, owners, members, timeOfCreation);
+        return (address(this), name, description, photoIpfsHash, owners, members, timeOfCreation);
     }
 
     function changePaginationLimit(uint256 _limit) external onlyOwner {

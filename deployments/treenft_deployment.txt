@@ -1,8 +1,0 @@
-TreeNft Contract Deployment
-==========================
-Contract Address: 0x2841f0BDcA1Eb0AB43915038d60df6a1aB97600F
-Owner: 0x3592638Dbe19AF5005A847CC0881876c87B50D29
-Chain ID: 11155111
-Block Number: 8477633
-Deployer: 0x3592638Dbe19AF5005A847CC0881876c87B50D29
-Timestamp: 1749070788

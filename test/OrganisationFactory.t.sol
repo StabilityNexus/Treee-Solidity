@@ -85,16 +85,14 @@ contract OrganisationFactoryTest is Test {
         assertEq(factory.getOrganisationCount(), 1);
         (
             address organizationAddress,
-            uint256 id,
             string memory name,
             string memory description,
             string memory photoIpfsHash,
             address[] memory owners,
             address[] memory members,
             uint256 timeOfCreation
-        ) = factory.getOrganisationInfo(orgId);
+        ) = factory.getOrganisationInfo(orgAddress);
         assert(organizationAddress == orgAddress);
-        assertEq(id, orgId);
         assertEq(name, NAME1);
         assertEq(description, DESCRIPTION1);
         assertEq(photoIpfsHash, PHOTO_IPFS_HASH1);
@@ -114,16 +112,14 @@ contract OrganisationFactoryTest is Test {
         vm.stopPrank();
 
         vm.startPrank(user1);
-        uint256[] memory user1Orgs = factory.getMyOrganisations();
+        address[] memory user1Orgs = factory.getMyOrganisations();
         vm.stopPrank();
         vm.startPrank(user2);
-        uint256[] memory user2Orgs = factory.getMyOrganisations();
+        address[] memory user2Orgs = factory.getMyOrganisations();
         vm.stopPrank();
 
         assertEq(user1Orgs.length, 1);
         assertEq(user2Orgs.length, 1);
-        assertEq(user1Orgs[0], 0);
-        assertEq(user2Orgs[0], 1);
     }
 
     function test_getAllOrganisations() public {
@@ -160,9 +156,7 @@ contract OrganisationFactoryTest is Test {
         factory.createOrganisation(NAME2, DESCRIPTION2, PHOTO_IPFS_HASH2);
         vm.stopPrank();
 
-        uint256[] memory orgIds = factory.getAllOrganisationIds();
-        assertEq(orgIds.length, 2);
-        assertEq(orgIds[0], 0);
-        assertEq(orgIds[1], 1);
+        address[] memory orgAddresses = factory.getAllOrganisations();
+        assertEq(orgAddresses.length, 2);
     }
 }
