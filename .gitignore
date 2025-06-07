@@ -17,6 +17,12 @@ docs/
 lib/
 .vscode/
 node_modules/
+
+/broadcast/
+
 ./.DS_Store
 
 ./.github/workflows/test.yml
+
+/deployments/
+

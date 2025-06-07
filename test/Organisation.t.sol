@@ -1,41 +1,74 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import "forge-std/Test.sol";
-import "forge-std/console.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "../lib/forge-std/src/Test.sol";
+import "../lib/forge-std/src/console.sol";
+
 import "../src/OrganisationFactory.sol";
 import "../src/Organisation.sol";
 import "../src/utils/structs.sol";
 import "../src/utils/errors.sol";
 import "../src/TreeNft.sol";
 
+import "../src/token-contracts/CareToken.sol";
+import "../src/token-contracts/PlanterToken.sol";
+import "../src/token-contracts/VerifierToken.sol";
+import "../src/token-contracts/LegacyToken.sol";
+
 contract OrganisationTest is Test {
     OrganisationFactory private factory;
     TreeNft private treeNft;
+    CareToken public careToken;
+    PlanterToken public planterToken;
+    VerifierToken public verifierToken;
+    LegacyToken public legacyToken;
+
     address private owner = address(0x1);
     address private user1 = address(0x2);
     address private user2 = address(0x3);
     address private user3 = address(0x4);
     address private user4 = address(0x5);
-    uint256 constant LATITUDE = 123456789;
-    uint256 constant LONGITUDE = 987654321;
+    uint256 constant LATITUDE = 1234567;
+    uint256 constant LONGITUDE = 9876543;
     string constant SPECIES = "Oak";
     string constant IMAGE_URI = "https://example.com/tree.jpg";
     string constant QR_IPFS_HASH = "QmTestQrHash";
     string constant GEOHASH = "u4pruydqqvj";
-
     string constant NAME = "Test Organisation";
     string constant DESCRIPTION = "This is a test organisation.";
     string constant PHOTO_IPFS_HASH = "QmTestPhotoHash";
     string constant NAME2 = "Test Organisation";
     string constant DESCRIPTION2 = "This is a test organisation.";
     string constant PHOTO_IPFS_HASH2 = "QmTestPhotoHash";
-
     string constant JOIN_REQUEST_DESCRIPTION = "I want to join this organisation";
 
     function setUp() public {
-        treeNft = new TreeNft();
+        vm.startPrank(owner);
+
+        careToken = new CareToken(owner);
+        planterToken = new PlanterToken(owner);
+        verifierToken = new VerifierToken(owner);
+        legacyToken = new LegacyToken(owner);
+
+        treeNft = new TreeNft(address(careToken), address(planterToken), address(verifierToken), address(legacyToken));
+
+        careToken.transferOwnership(address(treeNft));
+        planterToken.transferOwnership(address(treeNft));
+        verifierToken.transferOwnership(address(treeNft));
+        legacyToken.transferOwnership(address(treeNft));
+
+        vm.stopPrank();
+
+        assertEq(careToken.owner(), address(treeNft));
+        assertEq(planterToken.owner(), address(treeNft));
+        assertEq(verifierToken.owner(), address(treeNft));
+        assertEq(legacyToken.owner(), address(treeNft));
+
+        assertEq(address(treeNft.careTokenContract()), address(careToken));
+        assertEq(address(treeNft.planterTokenContract()), address(planterToken));
+        assertEq(address(treeNft.verifierTokenContract()), address(verifierToken));
+        assertEq(address(treeNft.legacyToken()), address(legacyToken));
+
         vm.startPrank(owner);
         factory = new OrganisationFactory(address(treeNft));
         vm.stopPrank();
@@ -121,10 +154,17 @@ contract OrganisationTest is Test {
         Organisation(orgAddress).addMember(user2);
         vm.stopPrank();
 
+        string[] memory imageHashes = new string[](1);
+        imageHashes[0] = "QmProofHash";
+
+        vm.prank(user3);
+        treeNft.mintNft(LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_IPFS_HASH, GEOHASH, imageHashes);
+        vm.stopPrank();
+
         vm.prank(user2);
         string[] memory proofHashes = new string[](1);
         proofHashes[0] = "QmProofHash";
-        uint256 requestId = Organisation(orgAddress).requestVerification("Proof of existence", proofHashes, 1);
+        uint256 requestId = Organisation(orgAddress).requestVerification("Proof of existence", proofHashes, 0);
         vm.stopPrank();
 
         vm.prank(user1);
@@ -150,11 +190,23 @@ contract OrganisationTest is Test {
         imageHashes[0] = "QmProofHash";
 
         vm.prank(user3);
-        treeNft.mintNft(LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_IPFS_HASH, GEOHASH, imageHashes, orgAddress);
+        treeNft.mintNft(LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_IPFS_HASH, GEOHASH, imageHashes);
         vm.stopPrank();
 
         vm.prank(user1);
         Organisation(orgAddress).addMember(user2);
+        vm.stopPrank();
+
+        vm.prank(user1);
+        Organisation(orgAddress).makeOwner(user2);
+        vm.stopPrank();
+
+        vm.prank(user1);
+        Organisation(orgAddress).addMember(user3);
+        vm.stopPrank();
+
+        vm.prank(user1);
+        Organisation(orgAddress).makeOwner(user3);
         vm.stopPrank();
 
         vm.prank(user2);
@@ -169,5 +221,92 @@ contract OrganisationTest is Test {
         vm.stopPrank();
 
         assertEq(request.status, 1);
+    }
+
+    function test_plantTreeProposal() public {
+        // This test if planting proposal works correctly
+
+        vm.prank(user1);
+        (uint256 orgId, address orgAddress) = factory.createOrganisation(NAME, DESCRIPTION, PHOTO_IPFS_HASH);
+        assertEq(orgId, 0);
+        vm.stopPrank();
+
+        vm.prank(user1);
+        Organisation(orgAddress).addMember(user2);
+        vm.stopPrank();
+
+        string[] memory proofHashes = new string[](1);
+        proofHashes[0] = "QmProofHash";
+
+        vm.prank(user1);
+        Organisation(orgAddress).plantTreeProposal(
+            LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_IPFS_HASH, proofHashes, GEOHASH
+        );
+        vm.stopPrank();
+
+        vm.prank(user1);
+        TreePlantingProposal memory proposal = Organisation(orgAddress).getTreePlantingProposal(0);
+        vm.stopPrank();
+
+        assertEq(proposal.id, 0);
+        assertEq(proposal.status, 1);
+        assertEq(proposal.latitude, LATITUDE);
+        assertEq(proposal.longitude, LONGITUDE);
+        assertEq(proposal.species, SPECIES);
+        assertEq(proposal.imageUri, IMAGE_URI);
+        assertEq(proposal.qrIpfsHash, QR_IPFS_HASH);
+        assertEq(proposal.geoHash, GEOHASH);
+    }
+
+    function test_votingOnPlantProposal() public {
+        // This test if voting on planting proposal works correctly
+
+        vm.prank(user1);
+        (uint256 orgId, address orgAddress) = factory.createOrganisation(NAME, DESCRIPTION, PHOTO_IPFS_HASH);
+        assertEq(orgId, 0);
+        vm.stopPrank();
+
+        string[] memory imageHashes = new string[](1);
+        imageHashes[0] = "QmProofHash";
+
+        vm.prank(user3);
+        treeNft.mintNft(LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_IPFS_HASH, GEOHASH, imageHashes);
+        vm.stopPrank();
+
+        vm.prank(user1);
+        Organisation(orgAddress).addMember(user2);
+        vm.stopPrank();
+
+        vm.prank(user1);
+        Organisation(orgAddress).makeOwner(user2);
+        vm.stopPrank();
+
+        vm.prank(user1);
+        Organisation(orgAddress).addMember(user3);
+        vm.stopPrank();
+
+        vm.prank(user1);
+        Organisation(orgAddress).makeOwner(user3);
+        vm.stopPrank();
+
+        vm.prank(user2);
+        string[] memory proofHashes = new string[](1);
+        proofHashes[0] = "QmProofHash";
+        Organisation(orgAddress).plantTreeProposal(
+            LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_IPFS_HASH, proofHashes, GEOHASH
+        );
+        vm.stopPrank();
+
+        vm.prank(user1);
+        TreePlantingProposal memory proposalBefore = Organisation(orgAddress).getTreePlantingProposal(0);
+        vm.stopPrank();
+        assertEq(proposalBefore.status, 0);
+
+        vm.prank(user1);
+        Organisation(orgAddress).voteOnTreePlantingProposal(0, 1);
+        TreePlantingProposal memory proposalAfter = Organisation(orgAddress).getTreePlantingProposal(0);
+        vm.stopPrank();
+
+        assertEq(proposalAfter.status, 1);
     }
 }

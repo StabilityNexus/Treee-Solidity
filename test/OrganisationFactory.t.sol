@@ -1,18 +1,28 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import "forge-std/Test.sol";
-import "forge-std/console.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "../lib/forge-std/src/Test.sol";
+import "../lib/forge-std/src/console.sol";
+
 import "../src/OrganisationFactory.sol";
 import "../src/Organisation.sol";
 import "../src/utils/structs.sol";
 import "../src/utils/errors.sol";
 import "../src/TreeNft.sol";
 
+import "../src/token-contracts/CareToken.sol";
+import "../src/token-contracts/PlanterToken.sol";
+import "../src/token-contracts/VerifierToken.sol";
+import "../src/token-contracts/LegacyToken.sol";
+
 contract OrganisationFactoryTest is Test {
     OrganisationFactory private factory;
     TreeNft private treeNft;
+    CareToken public careToken;
+    PlanterToken public planterToken;
+    VerifierToken public verifierToken;
+    LegacyToken public legacyToken;
+
     address private owner = address(0x1);
     address private user1 = address(0x2);
     address private user2 = address(0x3);
@@ -27,7 +37,32 @@ contract OrganisationFactoryTest is Test {
     string constant PHOTO_IPFS_HASH2 = "QmTestPhotoHash";
 
     function setUp() public {
-        treeNft = new TreeNft();
+        vm.startPrank(owner);
+
+        careToken = new CareToken(owner);
+        planterToken = new PlanterToken(owner);
+        verifierToken = new VerifierToken(owner);
+        legacyToken = new LegacyToken(owner);
+
+        treeNft = new TreeNft(address(careToken), address(planterToken), address(verifierToken), address(legacyToken));
+
+        careToken.transferOwnership(address(treeNft));
+        planterToken.transferOwnership(address(treeNft));
+        verifierToken.transferOwnership(address(treeNft));
+        legacyToken.transferOwnership(address(treeNft));
+
+        vm.stopPrank();
+
+        assertEq(careToken.owner(), address(treeNft));
+        assertEq(planterToken.owner(), address(treeNft));
+        assertEq(verifierToken.owner(), address(treeNft));
+        assertEq(legacyToken.owner(), address(treeNft));
+
+        assertEq(address(treeNft.careTokenContract()), address(careToken));
+        assertEq(address(treeNft.planterTokenContract()), address(planterToken));
+        assertEq(address(treeNft.verifierTokenContract()), address(verifierToken));
+        assertEq(address(treeNft.legacyToken()), address(legacyToken));
+
         vm.startPrank(owner);
         factory = new OrganisationFactory(address(treeNft));
         vm.stopPrank();
@@ -50,16 +85,14 @@ contract OrganisationFactoryTest is Test {
         assertEq(factory.getOrganisationCount(), 1);
         (
             address organizationAddress,
-            uint256 id,
             string memory name,
             string memory description,
             string memory photoIpfsHash,
             address[] memory owners,
             address[] memory members,
             uint256 timeOfCreation
-        ) = factory.getOrganisationInfo(orgId);
+        ) = factory.getOrganisationInfo(orgAddress);
         assert(organizationAddress == orgAddress);
-        assertEq(id, orgId);
         assertEq(name, NAME1);
         assertEq(description, DESCRIPTION1);
         assertEq(photoIpfsHash, PHOTO_IPFS_HASH1);
@@ -79,16 +112,14 @@ contract OrganisationFactoryTest is Test {
         vm.stopPrank();
 
         vm.startPrank(user1);
-        uint256[] memory user1Orgs = factory.getMyOrganisations();
+        address[] memory user1Orgs = factory.getMyOrganisations();
         vm.stopPrank();
         vm.startPrank(user2);
-        uint256[] memory user2Orgs = factory.getMyOrganisations();
+        address[] memory user2Orgs = factory.getMyOrganisations();
         vm.stopPrank();
 
         assertEq(user1Orgs.length, 1);
         assertEq(user2Orgs.length, 1);
-        assertEq(user1Orgs[0], 0);
-        assertEq(user2Orgs[0], 1);
     }
 
     function test_getAllOrganisations() public {
@@ -125,9 +156,7 @@ contract OrganisationFactoryTest is Test {
         factory.createOrganisation(NAME2, DESCRIPTION2, PHOTO_IPFS_HASH2);
         vm.stopPrank();
 
-        uint256[] memory orgIds = factory.getAllOrganisationIds();
-        assertEq(orgIds.length, 2);
-        assertEq(orgIds[0], 0);
-        assertEq(orgIds[1], 1);
+        address[] memory orgAddresses = factory.getAllOrganisations();
+        assertEq(orgAddresses.length, 2);
     }
 }

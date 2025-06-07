@@ -7,19 +7,15 @@ import "./utils/structs.sol";
 import "./utils/errors.sol";
 
 contract OrganisationFactory is Ownable {
-    uint256 private s_organisationCounter;
     address public treeNFTContract;
 
-    mapping(uint256 => address) private s_organisationIdToAddress;
-    mapping(address => uint256[]) public s_userToOrganisations;
-    mapping(address => uint256) private s_organisationAddressToId;
+    mapping(address => Organisation) public s_organisationAddressToOrganisation;
+    mapping(address => address[]) public s_userToOrganisations;
     mapping(address => bool) private s_isOrganisation;
 
     address[] private s_allOrganisations;
-    uint256[] private s_allOrganisationIds;
 
     constructor(address _treeNFTContract) Ownable(msg.sender) {
-        s_organisationCounter = 0;
         treeNFTContract = _treeNFTContract;
     }
 
@@ -29,48 +25,27 @@ contract OrganisationFactory is Ownable {
     {
         // This function allows a user to create a new organization.
 
-        require(bytes(_name).length > 0, "Name cannot be empty");
-        require(bytes(_description).length > 0, "Description cannot be empty");
-        organisationId = s_organisationCounter;
+        if (bytes(_name).length == 0) revert InvalidNameInput();
+        if (bytes(_description).length == 0) revert InvalidDescriptionInput();
 
-        // Deploy new Organization contract
         Organisation newOrganisation = new Organisation(
-            organisationId, _name, _description, _photoIpfsHash, msg.sender, address(this), treeNFTContract, msg.sender
+            _name, _description, _photoIpfsHash, msg.sender, address(this), treeNFTContract, msg.sender
         );
         organisationAddress = address(newOrganisation);
-        s_organisationIdToAddress[organisationId] = organisationAddress;
-        s_organisationAddressToId[organisationAddress] = organisationId;
-        s_userToOrganisations[msg.sender].push(organisationId);
+        s_userToOrganisations[msg.sender].push(organisationAddress);
         s_isOrganisation[organisationAddress] = true;
         s_allOrganisations.push(organisationAddress);
-        s_allOrganisationIds.push(organisationId);
-        s_organisationCounter++;
+        s_organisationAddressToOrganisation[organisationAddress] = newOrganisation;
         return (organisationId, organisationAddress);
     }
 
-    function getOrganisationAddress(uint256 _organizationId) external view returns (address) {
-        // This function retrives the address of an organization based on its ID.
-
-        address orgAddress = s_organisationIdToAddress[_organizationId];
-        require(orgAddress != address(0), "Organization does not exist");
-        return orgAddress;
-    }
-
-    function getUserOrganisations(address _user) external view returns (uint256[] memory) {
+    function getUserOrganisations(address _user) external view returns (address[] memory) {
         // This function retrieves the list of organization IDs associated with a user.
 
         return s_userToOrganisations[_user];
     }
 
-    function addUserToOrganisation(address _user) external {
-        // This function allows an organization to add a user to its list of organizations.
-
-        require(s_isOrganisation[msg.sender], "Only organization can add user");
-        uint256 organisationId = s_organisationAddressToId[msg.sender];
-        s_userToOrganisations[_user].push(organisationId);
-    }
-
-    function getMyOrganisations() external view returns (uint256[] memory) {
+    function getMyOrganisations() external view returns (address[] memory) {
         // This function retrieves the list of organization IDs associated with the caller.
 
         return s_userToOrganisations[msg.sender];
@@ -82,30 +57,24 @@ contract OrganisationFactory is Ownable {
         return s_allOrganisations;
     }
 
-    function getAllOrganisationIds() external view returns (uint256[] memory) {
-        // This function retrieves the list of all organization IDs.
-
-        return s_allOrganisationIds;
-    }
-
     function getOrganisationCount() external view returns (uint256) {
         // This function retrieves the total number of organisations created.
 
-        return s_organisationCounter;
+        return s_allOrganisations.length;
     }
 
-    function isValidOrganisation(address _organisationAddress) external view returns (bool) {
-        // This function checks if the provided address is a valid organisation.
-
-        return s_isOrganisation[_organisationAddress];
+    function addMemberToOrganisation(address _member) external {
+        // This function adds a member to an organization.
+        if (!s_isOrganisation[msg.sender]) revert InvalidOrganisation();
+        if (msg.sender == address(0)) revert OrganisationDoesNotExist();
+        s_userToOrganisations[_member].push(msg.sender);
     }
 
-    function getOrganisationInfo(uint256 _organizationId)
+    function getOrganisationInfo(address _organisationAddress)
         external
         view
         returns (
-            address organizationAddress,
-            uint256 id,
+            address organisationAddress,
             string memory name,
             string memory description,
             string memory photoIpfsHash,
@@ -115,11 +84,8 @@ contract OrganisationFactory is Ownable {
         )
     {
         // This function retrieves detailed information about an organization based on its ID.
-
-        organizationAddress = s_organisationIdToAddress[_organizationId];
-        require(organizationAddress != address(0), "Organization does not exist");
-
-        Organisation org = Organisation(organizationAddress);
+        if (!s_isOrganisation[_organisationAddress]) revert OrganisationDoesNotExist();
+        Organisation org = Organisation(_organisationAddress);
         return org.getOrganisationInfo();
     }
 
@@ -133,7 +99,6 @@ contract OrganisationFactory is Ownable {
             Organisation org = Organisation(organisationAddress);
             try org.getOrganisationInfo() returns (
                 address orgAddress,
-                uint256 id,
                 string memory name,
                 string memory description,
                 string memory photoIpfsHash,
@@ -142,7 +107,6 @@ contract OrganisationFactory is Ownable {
                 uint256 timeOfCreation
             ) {
                 organizationDetails[i] = OrganisationDetails({
-                    id: id,
                     contractAddress: orgAddress,
                     name: name,
                     description: description,
@@ -156,7 +120,6 @@ contract OrganisationFactory is Ownable {
                 });
             } catch {
                 organizationDetails[i] = OrganisationDetails({
-                    id: s_allOrganisationIds[i],
                     contractAddress: organisationAddress,
                     name: "ERROR: Unable to fetch",
                     description: "ERROR: Contract call failed",
@@ -177,21 +140,18 @@ contract OrganisationFactory is Ownable {
     function updateTreeNFTContract(address _newTreeNFTContract) external onlyOwner {
         // This function updates the address of the Tree NFT contract.
 
-        require(_newTreeNFTContract != address(0), "Invalid contract address");
+        if (_newTreeNFTContract == address(0)) revert InvalidInput();
         treeNFTContract = _newTreeNFTContract;
     }
 
-    function removeOrganisation(address _organizationAddress) external onlyOwner {
+    function removeOrganisation(address _organisationAddress) external onlyOwner {
         // This function allows the owner to remove an organization from the factory.
 
-        require(s_isOrganisation[_organizationAddress], "Not a valid organization");
-        s_isOrganisation[_organizationAddress] = false;
+        if (s_isOrganisation[_organisationAddress] == false) revert OrganisationDoesNotExist();
         for (uint256 i = 0; i < s_allOrganisations.length; i++) {
-            if (s_allOrganisations[i] == _organizationAddress) {
+            if (s_allOrganisations[i] == _organisationAddress) {
                 s_allOrganisations[i] = s_allOrganisations[s_allOrganisations.length - 1];
                 s_allOrganisations.pop();
-                s_allOrganisationIds[i] = s_allOrganisationIds[s_allOrganisationIds.length - 1];
-                s_allOrganisationIds.pop();
                 break;
             }
         }

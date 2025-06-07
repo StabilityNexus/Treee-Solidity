@@ -2,7 +2,6 @@
 pragma solidity ^0.8.28;
 
 struct OrganisationDetails {
-    uint256 id;
     address contractAddress;
     string name;
     string description;
@@ -15,11 +14,13 @@ struct OrganisationDetails {
     uint256 timeOfCreation;
 }
 
-struct Verification {
+struct TreeNftVerification {
     address verifier;
     uint256 timestamp;
     string[] proofHashes;
     string description;
+    bool isHidden;
+    uint256 treeNftId;
 }
 
 struct OrganisationVerificationRequest {
@@ -33,21 +34,13 @@ struct OrganisationVerificationRequest {
     uint256 treeNftId;
 }
 
-struct JoinRequest {
-    uint256 id;
-    address user;
-    address organisationContract;
-    uint256 status; // 0 = pending, 1 = approved, 2 = denied
-    string description;
-    uint256 timestamp;
-    address reviewer;
-}
-
 struct User {
     address userAddress;
     string profilePhotoIpfs;
     string name;
     uint256 dateJoined;
+    uint256 verificationsRevoked;
+    uint256 reportedSpam;
 }
 
 struct Tree {
@@ -61,8 +54,18 @@ struct Tree {
     string[] photos;
     string geoHash;
     address[] ancestors;
-    address organisationAddress;
-    Verification[] verifiers;
     uint256 lastCareTimestamp;
     uint256 careCount;
+}
+
+struct TreePlantingProposal {
+    uint256 id;
+    uint256 latitude;
+    uint256 longitude;
+    string species;
+    string imageUri;
+    string qrIpfsHash;
+    string[] photos;
+    string geoHash;
+    uint256 status;
 }
