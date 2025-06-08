@@ -11,6 +11,8 @@ contract DeployOrganisationFactory is Script {
         address deployer = vm.addr(deployerPrivateKey);
         address treeNftAddress = vm.envAddress("TREE_NFT_ADDRESS");
 
+        if (treeNftAddress.code.length <= 0) revert InvalidContractAddress();
+
         console.log("\n========== DEPLOYMENT STARTED ==========");
         console.log(">> Deployer Address:        ", deployer);
         console.log(">> Deployer Balance (wei):  ", deployer.balance);
