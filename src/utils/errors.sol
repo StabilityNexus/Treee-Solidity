@@ -27,6 +27,7 @@ error InvalidProposalId();
 error AlreadyVoted();
 error InvalidInput();
 error PaginationLimitExceeded();
+error InvalidContractAddress();
 
 /// Request
 error InvalidRequestId();
@@ -46,3 +47,7 @@ error InvalidCoordinates();
 /// User
 error UserAlreadyRegistered();
 error UserNotRegistered();
+
+/// Deploy
+
+error OwnershipNotTransferred();
