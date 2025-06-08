@@ -54,7 +54,6 @@ contract DeployTreeNft is Script {
         console.log("VerifierToken ownership transferred to TreeNft");
         legacyToken.transferOwnership(treeNftAddress);
         console.log("LegacyToken ownership transferred to TreeNft");
-        vm.stopBroadcast();
 
         console.log("\n=== DEPLOYMENT SUMMARY ===");
         console.log("CareToken:", careTokenAddress);
