@@ -219,142 +219,13 @@ cast call <CONTRACT_ADDRESS> "getOrganisationCount()(uint256)" --rpc-url http://
 cast send <CONTRACT_ADDRESS> "mintTree(address,string)" <RECIPIENT> "ipfs://metadata" \
   --private-key <YOUR_KEY> \
   --rpc-url http://127.0.0.1:8545
-          | Description                              |
-| -------------------------- | ---------------------------------------- |
-| `forge build`              | Compile contracts                        |
-| `forge test`               | Run all tests                            |
-| `forge test -vvvv`         | Run tests with detailed traces           |
-| `forge fmt`                | Format Solidity code                     |
-| `forge clean`              | Remove build artifacts                   |
-| `forge snapshot`           | Create gas usage snapshot                |
-| `forge coverage`           | Generate test coverage report            |
-| `anvil`                    | Start local blockchain node              |
-| `cast call`                | Call a contract function (read-only)     |
-| `cast send`                | Send a transaction to a contract         |
-| `forge script <script>`    | Execute Whether it's bug fixes, new features, documentation improvements, or feedback.
 
-### How to Contribute
-
-1. **Fork the repository** and create a feature branch:
-
-   ```bash
-   git checkout -b feature/AmazingFeature
-   ```
-
-2. **Make your changes** following our coding standards:
-   - Write clear, documented code
-   - Follow Solidity style guide
-   - Add tests for new functionality
-   - Update documentation as needed
-
-3. **Run all checks** before committing:
-
-   ```bash
-   forge build && forge test && forge fmt
-   ```
-
-4. **Commit your changes** with descriptive messages:
-
-   ```bash
-   git commit -m "feat: Add tree verification mechanism"
-   ```
-
-5. **Push to your fork** and open a Pull Request:
-
-   ```bash
-   git push origin feature/AmazingFeature
-   ```
-
-### Development Guidelines
-
-- ✅ Write tests for all new features
-- ✅ Maintain or improve test coverage
-- ✅ Follow existing code style and patterns
-- ✅ Add NatSpec comments to public functions
-- ✅ Update README if adding new features
-- ✅ Keep commits atomic and well-described
-
-### Getting Help
-
-- 💬 [Discord](https://discord.gg/YzDKeEfWtS) — Ask questions and get help
-- 🐛 [GitHub Issues](https://github.com/StabilityNexus/Treee-Solidity/issues) — Report bugs
-- 💡 [GitHub Discussions](https://github.com/StabilityNexus/Treee-Solidity/discussions) — Feature requests and ideas
-
----
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
----
-
-## Resources
-
-### Documentation
-
-- [Foundry Book](https://book.getfoundry.sh/) — Official Foundry documentation
-- [Solidity Docs](https://docs.soliditylang.org/) — Solidity language reference
-- [OpenZeppelin Docs](https://docs.openzeppelin.com/) — Smart contract libraries
-
-### Community
-
-- 🌐 [Website](https://treee.stability.nexus/)
-- 📰 [Blog](https://news.stability.nexus/)
-- 🐦 [Twitter/X](https://x.com/StabilityNexus)
-- 💼 [LinkedIn](https://linkedin.com/company/stability-nexus)
-- 📺 [YouTube](https://www.youtube.com/@StabilityNexus)
-
----
-
-<div align="center">
-
-**Built with 💚 by the Treee Team**
-
-© 2025 **Treee Project** · Part of the [Stability Nexus](https://stability.nexus/) ecosystem
-
-</div>
-│   ├── DeployAllContracts.s.sol
-│   ├── DeployOrganisationFactory.s.sol
-│   └── DeployTreeNftContract.s.sol
-├── test/                         # Test files
-│   ├── Organisation.t.sol
-│   ├── OrganisationFactory.t.sol
-│   └── TreeNft.t.sol
-├── lib/                          # External dependencies
-│   ├── forge-std/                # Foundry standard library
-│   ├── foundry-devops/           # Deployment tools
-│   └── openzeppelin-contracts/   # OpenZeppelin libraries
-├── foundry.toml                  # Foundry configuration
-├── remappings.txt                # Import remappings
-└── README.md                     # This file
+# Get contract balance
+cast balance <ADDRESS> --rpc-url http://127.0.0.1:8545
 ```
 
----
+#### Using Forge Scripts:
 
-## Security
-
-### Best Practices
-
-- 🔒 All contracts use **OpenZeppelin** audited libraries
-- ✅ Access control via **role-based permissions**
-- 🛡️ **Custom errors** for gas-efficient reverts
-- 🔍 **Comprehensive test coverage** required
-- 📝 **NatSpec documentation** for all public functions
-
-### Security Considerations
-
-1. **Private Keys**: Never commit private keys or `.env` files
-2. **Audits**: Production contracts should be professionally audited
-3. **Testing**: Achieve high test coverage before deployment
-4. **Upgradability**: Consider using proxy patterns for critical contracts
-5. **Rate Limiting**: Implement appropriate safeguards against spam
-
-### Reporting Vulnerabilities
-
-If you discover a security vulnerability, please email:  
-**security@stability.nexus**
-
-Do not open public issues for security concerns.
 ```bash
 # Deploy Organisation Factory
 forge script script/DeployOrganisationFactory.s.sol:DeployOrganisationFactory \
@@ -366,6 +237,59 @@ forge script script/DeployTreeNftContract.s.sol:DeployTreeNft \
   --rpc-url http://127.0.0.1:8545 \
   --broadcast
 ```
+
+---
+
+## Project Structure
+
+```
+Treee-Solidity/
+├── 📁 src/                          # Smart contracts source code
+│   ├── 📄 Organisation.sol          # Organization management contract
+│   ├── 📄 OrganisationFactory.sol   # Factory for creating organizations
+│   ├── 📄 TreeNft.sol               # Tree NFT contract (ERC-721)
+│   ├── 📁 token-contracts/          # ERC-20 token implementations
+│   │   ├── 📄 CareToken.sol         # Care incentive token
+│   │   ├── 📄 PlanterToken.sol      # Planter reward token
+│   │   └── 📄 LegacyToken.sol       # Legacy contribution token
+│   └── 📁 utils/                    # Utility contracts
+│       ├── 📄 errors.sol            # Custom error definitions
+│       └── 📄 structs.sol           # Shared data structures
+│
+├── 📁 script/                       # Deployment & interaction scripts
+│   ├── 📄 DeployAllContracts.s.sol  # Deploy all contracts at once
+│   ├── 📄 DeployOrganisationFactory.s.sol
+│   └── 📄 DeployTreeNftContract.s.sol
+│
+├── 📁 test/                         # Test files (Foundry tests)
+│   ├── 📄 Organisation.t.sol        # Organisation contract tests
+│   ├── 📄 OrganisationFactory.t.sol # Factory contract tests
+│   └── 📄 TreeNft.t.sol             # TreeNft contract tests
+│
+├── 📁 lib/                          # External dependencies (Git submodules)
+│   ├── 📁 forge-std/                # Foundry standard library
+│   ├── 📁 foundry-devops/           # Deployment tools & utilities
+│   └── 📁 openzeppelin-contracts/   # OpenZeppelin security libraries
+│
+├── 📁 img/                          # Images & assets
+│
+├── 📄 foundry.toml                  # Foundry configuration
+├── 📄 remappings.txt                # Import path remappings
+├── 📄 makefile                      # Build automation
+├── 📄 package.json                  # Node.js package config
+└── 📄 README.md                     # This file
+```
+
+### Key Files Explained
+
+| File/Directory | Purpose |
+|----------------|---------|
+| `foundry.toml` | Foundry configuration including Solidity version, optimizer settings, and test paths |
+| `remappings.txt` | Maps import paths (e.g., `@openzeppelin/` → `lib/openzeppelin-contracts/`) |
+| `makefile` | Contains shortcuts for common build and deployment commands |
+| `lib/` | Contains all external dependencies installed via `forge install` |
+| `script/` | Deployment scripts using Foundry's scripting capabilities |
+| `test/` | Unit and integration tests using Foundry's testing framework |
 
 ---
 
@@ -481,82 +405,102 @@ forge verify-contract <CONTRACT_ADDRESS> \
   --chain-id 11155111 \
   --etherscan-api-key $ETHERSCAN_API_KEY \
   --constructor-args $(cast abi-encode "constructor(string,string)" "TreeNFT" "TREE")
-
-#### 4. Start a local node
-
-```bash
-anvil
-```
-
-#### 5. Deploy (example)
-
-```bash
-forge script script/Deploy.s.sol:DeployAllContractsAtOnce \
-  --rpc-url $SEPOLIA_RPC_URL \
-  --private-key $PRIVATE_KEY \
-  --broadcast
-```
-
----
-
-## Developer Workflow
-
-Run a local node:
-
-```bash
-anvil
-```
-
-Test in watch mode:
-
-```bash
-forge test --watch
-```
-
-Interact manually:
-
-```bash
-cast call <contract-address> "getOrganisationCount()()" --rpc-url http://127.0.0.1:8545
 ```
 
 ---
 
 ## Common Commands
 
-| Command          | Description                 |
-| ---------------- | --------------------------- |
-| `forge build`    | Compile contracts           |
-| `forge test`     | Run tests                   |
-| `forge fmt`      | Format Solidity code        |
-| `forge snapshot` | Create gas usage reports    |
-| `anvil`          | Start local blockchain node |
+| Command                    | Description                              |
+| `forge build`              | Compile contracts                        |
+| `forge test`               | Run all tests                            |
+| `forge test -vvvv`         | Run tests with detailed traces           |
+| `forge fmt`                | Format Solidity code                     |
+| `forge clean`              | Remove build artifacts                   |
+| `forge snapshot`           | Create gas usage snapshot                |
+| `forge coverage`           | Generate test coverage report            |
+| `anvil`                    | Start local blockchain node              |
+| `cast call`                | Call a contract function (read-only)     |
+| `cast send`                | Send a transaction to a contract         |
+| `forge script <script>`    | Execute Whether it's bug fixes, new features, documentation improvements, or feedback.
 
----
+### How to Contribute
 
-## Contributing
-
-We welcome contributions of all kinds!
-
-1. Fork the repo & create a feature branch:
+1. **Fork the repository** and create a feature branch:
 
    ```bash
    git checkout -b feature/AmazingFeature
    ```
-2. Commit your changes:
 
-   ```bash
-   git commit -m "Add some AmazingFeature"
-   ```
-3. Run checks:
+2. **Make your changes** following our coding standards:
+   - Write clear, documented code
+   - Follow Solidity style guide
+   - Add tests for new functionality
+   - Update documentation as needed
+
+3. **Run all checks** before committing:
 
    ```bash
    forge build && forge test && forge fmt
    ```
-4. Push & open a PR 
 
-For bugs, suggestions, or questions — open an issue or reach us on [Discord](https://discord.gg/YzDKeEfWtS).
+4. **Commit your changes** with descriptive messages:
+
+   ```bash
+   git commit -m "feat: Add tree verification mechanism"
+   ```
+
+5. **Push to your fork** and open a Pull Request:
+
+   ```bash
+   git push origin feature/AmazingFeature
+   ```
+
+### Development Guidelines
+
+- ✅ Write tests for all new features
+- ✅ Maintain or improve test coverage
+- ✅ Follow existing code style and patterns
+- ✅ Add NatSpec comments to public functions
+- ✅ Update README if adding new features
+- ✅ Keep commits atomic and well-described
+
+### Getting Help
+
+- 💬 [Discord](https://discord.gg/YzDKeEfWtS) — Ask questions and get help
+- 🐛 [GitHub Issues](https://github.com/StabilityNexus/Treee-Solidity/issues) — Report bugs
+- 💡 [GitHub Discussions](https://github.com/StabilityNexus/Treee-Solidity/discussions) — Feature requests and ideas
 
 ---
 
-© 2025 **Treee Project** · [Stability Nexus](https://stability.nexus/) ecosystem.
+## License
 
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+---
+
+## Resources
+
+### Documentation
+
+- [Foundry Book](https://book.getfoundry.sh/) — Official Foundry documentation
+- [Solidity Docs](https://docs.soliditylang.org/) — Solidity language reference
+- [OpenZeppelin Docs](https://docs.openzeppelin.com/) — Smart contract libraries
+
+### Community
+
+- 🌐 [Website](https://treee.stability.nexus/)
+- 📰 [Blog](https://news.stability.nexus/)
+- 🐦 [Twitter/X](https://x.com/StabilityNexus)
+- 💼 [LinkedIn](https://linkedin.com/company/stability-nexus)
+- 📺 [YouTube](https://www.youtube.com/@StabilityNexus)
+
+---
+
+<div align="center">
+
+**Built with 💚 by the Treee Team**
+
+© 2025 **Treee Project** · Part of the [Stability Nexus](https://stability.nexus/) ecosystem
+
+</div>
