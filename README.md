@@ -50,20 +50,103 @@ It powers transparent and auditable sustainability tracking within the **Stabili
 
 ---
 
-## Tech Stack
+## Table of Contents
 
-### Core
+- [Overview](#overview)
+- [Architecture](#architecture)
+- [Contracts](#contracts)
+- [Tokenomics](#tokenomics)
+- [Getting Started](#getting-started)
+- [Usage Flow](#usage-flow)
+- [Developer Workflow](#developer-workflow)
+- [Contributing](#contributing)
 
-- **Solidity (v0.8.28)** — Smart contract development  
-- **Foundry (forge, anvil, cast)** — Testing, simulation & deployment  
-- **OpenZeppelin Contracts** — Token standards and access control  
+---
 
-### Contracts
+## Overview
 
-- `TreeNft.sol` — NFT for planted trees  
-- `Organisation.sol` — Handles organization logic  
-- `OrganisationFactory.sol` — Deploys and tracks organizations  
-- `CareToken.sol`, `PlanterToken.sol`, `LegacyToken.sol` — Incentive ERC-20 tokens  
+Treee is a decentralized protocol for tree planting and verification. Organizations can register, propose tree-planting initiatives, and mint NFTs representing planted trees. Community members verify these trees through on-chain proofs, earning rewards while ensuring transparency.
+
+Key features:
+- **Organization Management**: Create and manage tree-planting organizations with member voting
+- **Tree NFTs**: ERC721 tokens representing individual planted trees with metadata
+- **Verification System**: Community-driven verification with proof submission
+- **Incentive Tokens**: Multiple ERC20 tokens rewarding different ecosystem activities
+- **User Profiles**: On-chain user registration and reputation tracking
+
+---
+
+## Architecture
+
+### Core Components
+
+```text
+├── OrganisationFactory.sol     # Factory for creating organizations
+├── Organisation.sol           # Organization logic and governance
+├── TreeNft.sol               # ERC721 NFT contract for trees
+└── token-contracts/          # Incentive ERC20 tokens
+    ├── CareToken.sol
+    ├── LegacyToken.sol
+    └── PlanterToken.sol
+```
+
+### Deployment Flow
+
+1. **Token Deployment**: Deploy CareToken and LegacyToken
+2. **TreeNft Deployment**: Deploy TreeNft with token addresses, transfer token ownership
+3. **Factory Deployment**: Deploy OrganisationFactory with TreeNft address
+
+---
+
+## Contracts
+
+### OrganisationFactory
+- **Purpose**: Central registry for all organizations
+- **Features**:
+  - Create new organizations
+  - Track organization memberships and ownerships
+  - Paginated queries for organizations
+  - Role-based access (owner/member)
+
+### Organisation
+- **Purpose**: Individual organization logic
+- **Features**:
+  - Member management (add/remove/promote)
+  - Tree planting proposals with voting
+  - Verification requests for planted trees
+  - Governance via majority owner voting
+
+### TreeNft
+- **Purpose**: NFT representation of planted trees
+- **Features**:
+  - Mint NFTs for approved tree planting proposals
+  - Verification system with proof submission
+  - User profile management
+  - Tree lifecycle tracking (planting/death)
+  - Metadata storage (coordinates, species, photos)
+
+### Token Contracts
+- **CareToken (CRT)**: Token for tree care activities
+- **LegacyToken (LT)**: Earned when marking trees as deceased
+- **PlanterToken (PRT)**: Earned by verifiers for each verified tree
+
+---
+
+## Tokenomics
+
+### Reward Mechanisms
+
+| Action | Token | Amount | Conditions |
+|--------|-------|--------|------------|
+| Verify Tree | PlanterToken | 1 PRT per tree | Must not be tree owner |
+| Mark Tree Dead | LegacyToken | 1 LT | Owner only, after 365 days |
+| Tree Care | CareToken | TBD | Future implementation |
+
+### PlanterToken Specifics
+- Unique token per verifier
+- Minted to tree owner upon verification
+- Can be burned if verification is revoked
+- Tracks verification history
 
 ---
 
@@ -72,7 +155,7 @@ It powers transparent and auditable sustainability tracking within the **Stabili
 ### Prerequisites
 
 - [Foundry](https://book.getfoundry.sh/getting-started/installation)
-- Rust toolchain (`rustup`)  
+- Rust toolchain (`rustup`)
 - Node.js (optional, for deployment scripting)
 
 ---
@@ -85,28 +168,29 @@ git clone https://github.com/StabilityNexus/Treee-Solidity.git
 cd Treee-Solidity
 ```
 
-#### 2. Build contracts
+#### 2. Install dependencies
+```bash
+make install
+```
 
+#### 3. Build contracts
 ```bash
 forge build
 ```
 
-#### 3. Run tests
-
+#### 4. Run tests
 ```bash
 forge test
 ```
 
-#### 4. Start a local node
-
+#### 5. Start a local node
 ```bash
 anvil
 ```
 
-#### 5. Deploy (example)
-
+#### 6. Deploy (example)
 ```bash
-forge script script/Deploy.s.sol:DeployAllContractsAtOnce \
+forge script script/DeployAllContracts.s.sol:DeployAllContractsAtOnce \
   --rpc-url $SEPOLIA_RPC_URL \
   --private-key $PRIVATE_KEY \
   --broadcast
@@ -114,24 +198,114 @@ forge script script/Deploy.s.sol:DeployAllContractsAtOnce \
 
 ---
 
+## Usage Flow
+
+### 1. Organization Creation
+```solidity
+// Deployer creates OrganisationFactory with TreeNft address
+OrganisationFactory factory = new OrganisationFactory(treeNftAddress);
+
+// User creates organization
+(uint256 orgId, address orgAddress) = factory.createOrganisation(
+    "Green Earth Org", 
+    "Tree planting initiative", 
+    "ipfs://photo-hash"
+);
+```
+
+### 2. Tree Planting Proposal
+```solidity
+// Organization member proposes tree planting
+Organisation org = Organisation(orgAddress);
+uint256 proposalId = org.plantTreeProposal(
+    40723456,  // latitude * 1e6
+    -74012345, // longitude * 1e6
+    "Oak",
+    "ipfs://image",
+    "ipfs://qr",
+    "Tree metadata",
+    photos,
+    geoHash,
+    5  // number of trees
+);
+```
+
+### 3. Voting and Minting
+```solidity
+// Owners vote on proposal
+org.voteOnTreePlantingProposal(proposalId, 1); // 1 = yes
+
+// Upon majority approval, NFT is minted automatically
+// TreeNft.mintNft() called with proposal data
+```
+
+### 4. Verification
+```solidity
+// Community member verifies planted tree
+TreeNft treeNft = TreeNft(treeNftAddress);
+uint256 verificationId = treeNft.verify(
+    tokenId,
+    proofHashes,
+    "Verification description"
+);
+
+// Verifier earns PlanterTokens
+```
+
+### 5. User Registration
+```solidity
+// Users register profiles
+treeNft.registerUserProfile("John Doe", "ipfs://profile-photo");
+```
+
+---
+
 ## Developer Workflow
 
-Run a local node:
-
+### Local Development
 ```bash
-anvil
-```
+# Start local blockchain
+make anvil
 
-Test in watch mode:
-
-```bash
+# Run tests in watch mode
 forge test --watch
+
+# Format code
+forge fmt
+
+# Generate gas snapshots
+forge snapshot
 ```
 
-Interact manually:
-
+### Testing
 ```bash
-cast call <contract-address> "getOrganisationCount()()" --rpc-url http://127.0.0.1:8545
+# Run all tests
+forge test
+
+# Run specific test file
+forge test --match-path test/Organisation.t.sol
+
+# Run with gas reporting
+forge test --gas-report
+```
+
+### Deployment
+```bash
+# Deploy to local anvil
+make deploy
+
+# Deploy to Sepolia (requires env vars)
+forge script script/DeployAllContracts.s.sol:DeployAllContractsAtOnce \
+  --network sepolia
+```
+
+### Interaction Examples
+```bash
+# Get organization count
+cast call $ORG_FACTORY "getOrganisationCount()()" --rpc-url http://127.0.0.1:8545
+
+# Get user's organizations
+cast call $ORG_FACTORY "getMyOrganisations(uint256,uint256)" 0 10 --rpc-url http://127.0.0.1:8545
 ```
 
 ---
@@ -145,6 +319,8 @@ cast call <contract-address> "getOrganisationCount()()" --rpc-url http://127.0.0
 | `forge fmt`      | Format Solidity code        |
 | `forge snapshot` | Create gas usage reports    |
 | `anvil`          | Start local blockchain node |
+| `make install`   | Install dependencies        |
+| `make clean`     | Clean build artifacts       |
 
 ---
 
